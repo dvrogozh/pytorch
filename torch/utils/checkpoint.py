@@ -126,15 +126,18 @@ class DefaultDeviceType:
 
 
 def _infer_device_type(*args):
-    device_types = []
+    devices = []
 
-    def add_device_types(arg):
-        nonlocal device_types
+    def add_device(arg):
+        nonlocal devices
         if isinstance(arg, torch.Tensor) and not arg.device.type == "cpu":
-            device_types.append(arg.device.type)
-    tree_map(add_device_types, args)
+            devices.append(arg.device)
+    tree_map(add_device, args)
 
-    device_types_set = set(device_types)
+    return _infer_device_type_from_devices(devices)
+
+def _infer_device_type_from_devices(devices):
+    device_types_set = {device.type for device in devices}
     if len(device_types_set) > 1:
         warnings.warn(
             "Tensor arguments, excluding CPU tensors, are detected on at least two types of devices. "
@@ -142,14 +145,14 @@ def _infer_device_type(*args):
             "devices will be ignored. Consequently, if any checkpointed functions involve randomness, "
             "this may result in incorrect gradients. (Note that if CUDA devices are among the devices "
             "detected, it will be prioritized; otherwise, the first device encountered will be selected.)"
-            f"\nDevice types: {sorted(device_types_set)} first device type: {device_types[0]}"
+            f"\nDevice types: {sorted(device_types_set)} first device type: {devices[0].type}"
         )
-    if len(device_types) == 0:
+    if len(device_types_set) == 0:
         return DefaultDeviceType.get_device_type()
     elif "cuda" in device_types_set:
         return "cuda"
     else:
-        return device_types[0]
+        return devices[0].type
 
 
 # We can't know if the run_fn will internally move some args to different devices,
@@ -159,31 +162,31 @@ def _infer_device_type(*args):
 # the device of all Tensor args.
 #
 # To consider:  maybe get_device_states and set_device_states should reside in torch/random.py?
-def get_device_states(*args) -> Tuple[List[int], List[torch.Tensor]]:
+def get_device_states(*args) -> Tuple[List[torch.device], List[torch.Tensor]]:
     # This will not error out if "arg" is a CPU tensor or a non-tensor type because
     # the conditionals short-circuit.
-    fwd_device_ids = []
+    fwd_devices = []
 
-    def add_device_ids(arg):
-        nonlocal fwd_device_ids
+    def add_device(arg):
+        nonlocal fwd_devices
         if isinstance(arg, torch.Tensor) and not arg.device.type == "cpu":
-            fwd_device_ids.append(arg.get_device())
-    tree_map(add_device_ids, args)
+            fwd_devices.append(arg.device)
+    tree_map(add_device, args)
 
     fwd_device_states = []
     device_module = _get_device_module(_infer_device_type(*args))
 
-    for device_id in fwd_device_ids:
-        with device_module.device(device_id):
+    for device in fwd_devices:
+        with device_module.device(device):
             fwd_device_states.append(device_module.get_rng_state())
 
-    return fwd_device_ids, fwd_device_states
+    return fwd_devices, fwd_device_states
 
 
 def set_device_states(devices, states) -> None:
-    device_module = _get_device_module(_infer_device_type(*states))
+    device_module = _get_device_module(_infer_device_type_from_devices(devices))
     for device, state in zip(devices, states):
-        with device_module.device(device):
+        with device_module.device(device.index):
             device_module.set_rng_state(state)
 
 
@@ -272,7 +275,7 @@ class CheckpointFunction(torch.autograd.Function):
         # when we're done.
         rng_devices = []
         if ctx.preserve_rng_state and ctx.had_device_in_fwd:
-            rng_devices = ctx.fwd_devices
+            rng_devices = [device.index for device in ctx.fwd_devices]
         with torch.random.fork_rng(
             devices=rng_devices, enabled=ctx.preserve_rng_state, device_type=ctx.device
         ):
@@ -285,7 +288,7 @@ class CheckpointFunction(torch.autograd.Function):
             device_autocast_ctx = torch.amp.autocast(
                 device_type=ctx.device, **ctx.device_autocast_kwargs
             ) if torch.amp.is_autocast_available(ctx.device) else contextlib.nullcontext()
-            with torch.enable_grad(), device_autocast_ctx, torch.cpu.amp.autocast(**ctx.cpu_autocast_kwargs):  # type: ignore[attr-defined]
+            with torch.enable_grad(), device_autocast_ctx, torch.amp.autocast("cpu", **ctx.cpu_autocast_kwargs):  # type: ignore[attr-defined]
                 outputs = ctx.run_function(*detached_inputs)
 
         if isinstance(outputs, torch.Tensor):
@@ -1457,7 +1460,7 @@ def _checkpoint_without_reentrant_generator(
         # the necessary global state to be captured.
         rng_devices = []
         if preserve_rng_state and had_device_in_fwd:
-            rng_devices = fwd_devices
+            rng_devices = [device.index for device in fwd_devices]
         with torch.random.fork_rng(
             devices=rng_devices, enabled=preserve_rng_state, device_type=device
         ):

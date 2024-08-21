@@ -1,0 +1,1 @@
+-ze-fp64-gen-conv-emu  -cl-poison-unsupported-fp64-kernels -cl-intel-enable-auto-large-GRF-mode -cl-fp32-correctly-rounded-divide-sqrt

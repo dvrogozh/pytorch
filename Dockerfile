@@ -55,25 +55,24 @@ COPY --from=submodule-update /opt/pytorch /opt/pytorch
 RUN make triton
 RUN --mount=type=cache,target=/opt/ccache \
     export eval ${CMAKE_VARS} && \
-    TORCH_CUDA_ARCH_LIST="7.0 7.2 7.5 8.0 8.6 8.7 8.9 9.0 9.0a" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
+    MAX_JOBS=32 TORCH_CUDA_ARCH_LIST="7.0 7.2 7.5 8.0 8.6 8.7 8.9 9.0 9.0a" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     CMAKE_PREFIX_PATH="$(dirname $(which conda))/../" \
     python setup.py install
 
 FROM conda as conda-installs
 ARG PYTHON_VERSION=3.11
-ARG CUDA_PATH=cu121
-ARG CUDA_CHANNEL=nvidia
+ARG INSTALL_PATH=cu121
 ARG INSTALL_CHANNEL=whl/nightly
 # Automatically set by buildx
-RUN /opt/conda/bin/conda update -y -n base -c defaults conda
+RUN /opt/conda/bin/conda update -y -n base conda
 RUN /opt/conda/bin/conda install -y python=${PYTHON_VERSION}
 
 ARG TARGETPLATFORM
 
-# INSTALL_CHANNEL whl - release, whl/nightly - nightly, whle/test - test channels
+# INSTALL_CHANNEL whl - release, whl/nightly - nightly, whl/test - test channels
 RUN case ${TARGETPLATFORM} in \
          "linux/arm64")  pip install --extra-index-url https://download.pytorch.org/whl/cpu/ torch torchvision torchaudio ;; \
-         *)              pip install --index-url https://download.pytorch.org/${INSTALL_CHANNEL}/${CUDA_PATH#.}/ torch torchvision torchaudio ;; \
+         *)              pip install --index-url https://download.pytorch.org/${INSTALL_CHANNEL}/${INSTALL_PATH#.}/ torch torchvision torchaudio ;; \
     esac && \
     /opt/conda/bin/conda clean -ya
 RUN /opt/conda/bin/pip install torchelastic

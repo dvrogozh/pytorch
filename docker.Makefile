@@ -15,14 +15,12 @@ BASE_RUNTIME              = ubuntu:22.04
 BASE_DEVEL                = nvidia/cuda:$(CUDA_VERSION)-devel-ubuntu22.04
 CMAKE_VARS               ?=
 
-# The conda channel to use to install cudatoolkit
-CUDA_CHANNEL              = nvidia
 # The conda channel to use to install pytorch / torchvision
 INSTALL_CHANNEL          ?= whl
 
-CUDA_PATH                ?= cpu
+INSTALL_PATH             ?= cpu
 ifneq ("$(CUDA_VERSION_SHORT)","cpu")
-CUDA_PATH                = cu$(subst .,,$(CUDA_VERSION_SHORT))
+INSTALL_PATH             = cu$(subst .,,$(CUDA_VERSION_SHORT))
 endif
 
 PYTHON_VERSION           ?= 3.11
@@ -36,9 +34,9 @@ TRITON_VERSION           ?=
 BUILD_ARGS                = --build-arg BASE_IMAGE=$(BASE_IMAGE) \
 							--build-arg PYTHON_VERSION=$(PYTHON_VERSION) \
 							--build-arg CUDA_VERSION=$(CUDA_VERSION) \
-							--build-arg CUDA_PATH=$(CUDA_PATH) \
 							--build-arg PYTORCH_VERSION=$(PYTORCH_VERSION) \
 							--build-arg INSTALL_CHANNEL=$(INSTALL_CHANNEL) \
+							--build-arg INSTALL_PATH=$(INSTALL_PATH) \
 							--build-arg TRITON_VERSION=$(TRITON_VERSION) \
 							--build-arg CMAKE_VARS="$(CMAKE_VARS)"
 EXTRA_DOCKER_BUILD_FLAGS ?=

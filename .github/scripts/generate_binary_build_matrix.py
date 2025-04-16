@@ -33,6 +33,10 @@ CUDA_ARCHES_CUDNN_VERSION = {
 ROCM_ARCHES = ["6.2.4", "6.3"]
 
 XPU_ARCHES = ["xpu"]
+XPU_ARCHES_FULL_VERSION = {
+    "2025.0": "2025.0.2-0",
+    #"2025.1": "2025.1.0-0",
+}
 
 CPU_AARCH64_ARCH = ["cpu-aarch64"]
 

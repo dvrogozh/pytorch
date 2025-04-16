@@ -67,6 +67,7 @@ ARG INSTALL_CHANNEL=whl/nightly
 RUN /opt/conda/bin/conda update -y -n base conda
 RUN /opt/conda/bin/conda install -y python=${PYTHON_VERSION}
 
+ARG CUDA_VERSION
 ARG TARGETPLATFORM
 
 # INSTALL_CHANNEL whl - release, whl/nightly - nightly, whl/test - test channels
@@ -81,12 +82,16 @@ RUN IS_CUDA=$(python -c 'import torch ; print(torch.cuda._is_compiled())'); \
     if test "${IS_CUDA}" != "True" -a ! -z "${CUDA_VERSION}"; then \
         exit 1; \
     fi
+RUN IS_XPU=$(python -c 'import torch ; print(torch.xpu._is_compiled())'); \
+    echo "Is torch compiled with xpu: ${IS_XPU}"; \
+    if test "${IS_XPU}" != "True" -a ! -z "${XPU_VERSION}"; then \
+        exit 1; \
+    fi
 
 FROM ${BASE_IMAGE} as official
 ARG PYTORCH_VERSION
 ARG TRITON_VERSION
 ARG TARGETPLATFORM
-ARG CUDA_VERSION
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         ca-certificates \

@@ -75,11 +75,14 @@ jobs:
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
       fail-fast: false
     env:
+      ACCEL: ${{ matrix.accel }}
       BUILD_IMAGE_TYPE: ${{ matrix.image_type }}
       BUILD_PLATFORMS: ${{ matrix.platform }}
       CUDA_VERSION: ${{ matrix.cuda_full_version }}
       CUDA_VERSION_SHORT: ${{ matrix.cuda }}
       CUDNN_VERSION: ${{ matrix.cudnn_version }}
+      XPU_VERSION: ${{ matrix.xpu_full_version }}
+      XPU_VERSION_SHORT: ${{ matrix.xpu }}
     steps:
       - name: Setup SSH (Click me for login details)
         uses: pytorch/test-infra/.github/actions/setup-ssh@main

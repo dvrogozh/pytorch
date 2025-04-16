@@ -8,18 +8,32 @@ $(warning WARNING: No docker user found using results from whoami)
 DOCKER_ORG                = $(shell whoami)
 endif
 
+ACCEL                    ?= cpu
+
+XPU_VERSION_SHORT        ?= 2025.0
+XPU_VERSION              ?= 2025.0.2-0
+
 CUDA_VERSION_SHORT       ?= 12.1
 CUDA_VERSION             ?= 12.1.1
 CUDNN_VERSION            ?= 9
+
+ifeq ("${ACCEL}","xpu")
+BASE_RUNTIME              = ubuntu:22.04
+BASE_DEVEL                = intel/deep-learning-essentials:${XPU_VERSION}-devel-ubuntu22.04
+else
 BASE_RUNTIME              = ubuntu:22.04
 BASE_DEVEL                = nvidia/cuda:$(CUDA_VERSION)-devel-ubuntu22.04
+endif
+
 CMAKE_VARS               ?=
 
 # The conda channel to use to install pytorch / torchvision
 INSTALL_CHANNEL          ?= whl
 
 INSTALL_PATH             ?= cpu
-ifneq ("$(CUDA_VERSION_SHORT)","cpu")
+ifeq ("$(ACCEL)","xpu")
+INSTALL_PATH             = xpu
+else ifneq ("$(ACCEL)","cpu")
 INSTALL_PATH             = cu$(subst .,,$(CUDA_VERSION_SHORT))
 endif
 
@@ -33,12 +47,16 @@ BUILD_PROGRESS           ?= auto
 TRITON_VERSION           ?=
 BUILD_ARGS                = --build-arg BASE_IMAGE=$(BASE_IMAGE) \
 							--build-arg PYTHON_VERSION=$(PYTHON_VERSION) \
-							--build-arg CUDA_VERSION=$(CUDA_VERSION) \
 							--build-arg PYTORCH_VERSION=$(PYTORCH_VERSION) \
 							--build-arg INSTALL_CHANNEL=$(INSTALL_CHANNEL) \
 							--build-arg INSTALL_PATH=$(INSTALL_PATH) \
 							--build-arg TRITON_VERSION=$(TRITON_VERSION) \
 							--build-arg CMAKE_VARS="$(CMAKE_VARS)"
+ifeq ("${ACCEL}","xpu")
+BUILD_ARGS               += --build-arg XPU_VERSION=${XPU_VERSION}
+else
+BUILD_ARGS               += --build-arg CUDA_VERSION=$(CUDA_VERSION)
+endif
 EXTRA_DOCKER_BUILD_FLAGS ?=
 
 BUILD                    ?= build
@@ -73,19 +91,7 @@ DOCKER_PUSH               = docker push $(DOCKER_FULL_NAME):$(DOCKER_TAG)
 .PHONY: all
 all: devel-image
 
-.PHONY: devel-image
-devel-image: BASE_IMAGE := $(BASE_DEVEL)
-devel-image: DOCKER_TAG := $(PYTORCH_VERSION)-cuda$(CUDA_VERSION_SHORT)-cudnn$(CUDNN_VERSION)-devel
-devel-image:
-	$(DOCKER_BUILD)
-
-.PHONY: devel-push
-devel-push: BASE_IMAGE := $(BASE_DEVEL)
-devel-push: DOCKER_TAG := $(PYTORCH_VERSION)-cuda$(CUDA_VERSION_SHORT)-cudnn$(CUDNN_VERSION)-devel
-devel-push:
-	$(DOCKER_PUSH)
-
-ifeq ("$(CUDA_VERSION_SHORT)","cpu")
+ifeq ("$(ACCEL)","cpu")
 
 .PHONY: runtime-image
 runtime-image: BASE_IMAGE := $(BASE_RUNTIME)
@@ -99,7 +105,45 @@ runtime-push: DOCKER_TAG := $(PYTORCH_VERSION)-runtime
 runtime-push:
 	$(DOCKER_PUSH)
 
+else ifeq ("$(ACCEL)","xpu")
+
+.PHONY: devel-image
+devel-image: BASE_IMAGE := $(BASE_DEVEL)
+devel-image: DOCKER_TAG := $(PYTORCH_VERSION)-xpu$(XPU_VERSION_SHORT)-devel
+devel-image:
+	$(DOCKER_BUILD)
+
+.PHONY: devel-push
+devel-push: BASE_IMAGE := $(BASE_DEVEL)
+devel-push: DOCKER_TAG := $(PYTORCH_VERSION)-xpu$(XPU_VERSION_SHORT)-devel
+devel-push:
+	$(DOCKER_PUSH)
+
+.PHONY: runtime-image
+runtime-image: BASE_IMAGE := $(BASE_RUNTIME)
+runtime-image: DOCKER_TAG := $(PYTORCH_VERSION)-xpu$(XPU_VERSION_SHORT)-runtime
+runtime-image:
+	$(DOCKER_BUILD)
+
+.PHONY: runtime-push
+runtime-push: BASE_IMAGE := $(BASE_RUNTIME)
+runtime-push: DOCKER_TAG := $(PYTORCH_VERSION)-xpu$(XPU_VERSION_SHORT)-runtime
+runtime-push:
+	$(DOCKER_PUSH)
+
 else
+
+.PHONY: devel-image
+devel-image: BASE_IMAGE := $(BASE_DEVEL)
+devel-image: DOCKER_TAG := $(PYTORCH_VERSION)-cuda$(CUDA_VERSION_SHORT)-cudnn$(CUDNN_VERSION)-devel
+devel-image:
+	$(DOCKER_BUILD)
+
+.PHONY: devel-push
+devel-push: BASE_IMAGE := $(BASE_DEVEL)
+devel-push: DOCKER_TAG := $(PYTORCH_VERSION)-cuda$(CUDA_VERSION_SHORT)-cudnn$(CUDNN_VERSION)-devel
+devel-push:
+	$(DOCKER_PUSH)
 
 .PHONY: runtime-image
 runtime-image: BASE_IMAGE := $(BASE_RUNTIME)

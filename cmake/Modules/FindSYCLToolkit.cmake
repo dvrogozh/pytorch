@@ -41,6 +41,8 @@ find_program(
   NO_DEFAULT_PATH
   )
 
+message("PPPP 1: SYCL_COMPILER=${SYCL_COMPILER}")
+
 function(parse_sycl_compiler_version version_number)
   # Execute the SYCL compiler with the --version flag to match the version string.
   execute_process(COMMAND ${SYCL_COMPILER} --version OUTPUT_VARIABLE SYCL_VERSION_STRING)
@@ -57,8 +59,11 @@ function(parse_sycl_compiler_version version_number)
 endfunction()
 
 if(SYCL_COMPILER)
-  parse_sycl_compiler_version(SYCL_COMPILER_VERSION)
+  #parse_sycl_compiler_version(SYCL_COMPILER_VERSION)
+  set(SYCL_COMPILER_VERSION "20250302")
 endif()
+
+message("PPPP 2: SYCL_COMPILER_VERSION=${SYCL_COMPILER_VERSION}")
 
 if(NOT SYCL_COMPILER_VERSION)
   set(SYCL_FOUND False)
@@ -117,13 +122,17 @@ find_library(
   NO_DEFAULT_PATH
 )
 
+message("PPPP 3: SYCL_LIBRARY=${SYCL_LIBRARY}")
+
 # Find OpenCL library fullname, which is a dependency of oneDNN.
 find_library(
   OCL_LIBRARY
   NAMES OpenCL
   HINTS ${SYCL_LIBRARY_DIR}
-  NO_DEFAULT_PATH
+  #NO_DEFAULT_PATH
 )
+
+message("PPPP 3: OCL_LIBRARY=${OCL_LIBRARY}")
 
 if((NOT SYCL_LIBRARY) OR (NOT OCL_LIBRARY))
   set(SYCL_FOUND False)

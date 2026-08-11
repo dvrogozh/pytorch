@@ -1204,6 +1204,7 @@ if(USE_XPU)
   torch_compile_options(torch_xpu)  # see cmake/public/utils.cmake
   target_compile_definitions(torch_xpu PRIVATE USE_XPU)
 
+if(BUILD_EAGER_MODE)
   # ATen XPU implementation
   set(TORCH_XPU_OPS_DIR ${TORCH_ROOT}/third_party/torch-xpu-ops)
   set(TORCH_XPU_OPS_REPO_URL https://github.com/intel/torch-xpu-ops.git)
@@ -1264,6 +1265,7 @@ if(USE_XPU)
         FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 
   endif()
+endif()  # BUILD_EAGER_MODE
 endif()
 
 if(NOT MSVC AND USE_XNNPACK)

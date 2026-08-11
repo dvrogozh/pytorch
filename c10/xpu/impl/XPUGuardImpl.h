@@ -165,12 +165,16 @@ struct XPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
         delete xpu_event;
 
       if (flag == EventFlag::BACKEND_DEFAULT) {
+#ifdef SYCL_EXT_ONEAPI_PROFILING_TAG
         // Use the profiling tag to record the event to enable timing feature.
         xpu_event =
             new sycl::event(syclex::submit_profiling_tag(xpu_stream.queue()));
+#endif
       } else {
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_BARRIER
         xpu_event =
             new sycl::event(xpu_stream.queue().ext_oneapi_submit_barrier());
+#endif
       }
     }
     *event = reinterpret_cast<void*>(xpu_event);
@@ -201,8 +205,10 @@ struct XPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
           xpu_stream.queue(), *xpu_event);
 #endif
     } else {
+#if defined(SYCL_EXT_ONEAPI_ENQUEUE_BARRIER)
       std::vector<sycl::event> event_list{*xpu_event};
       xpu_stream.queue().ext_oneapi_submit_barrier(event_list);
+#endif
     }
 
     const c10::impl::PyInterpreter* interp = c10::impl::GPUTrace::get_trace();
@@ -218,9 +224,13 @@ struct XPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     using namespace sycl::info;
     if (!event)
       return true;
+#if 0
     auto* xpu_event = reinterpret_cast<sycl::event*>(event);
     return xpu_event->get_info<event::command_execution_status>() ==
         event_command_status::complete;
+#else
+    TORCH_CHECK(false, "sycl::info::event::command_execution_status is not supported");
+#endif
   }
 
   double elapsedTime(

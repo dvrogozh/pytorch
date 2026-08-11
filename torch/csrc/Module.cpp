@@ -130,7 +130,7 @@
 #endif
 
 #ifdef USE_XPU
-#include <ATen/native/transformers/xpu/sdp_utils.h>
+//#include <ATen/native/transformers/xpu/sdp_utils.h>
 #ifndef _WIN32
 #include <torch/csrc/inductor/static_launcher/xpu.h>
 #endif
@@ -3026,7 +3026,8 @@ Call this whenever a new thread is created in order to propagate values from
 
   py_module.def("_is_flash_attention_available", []() {
 #if defined(USE_CUDA) || defined(USE_XPU)
-    return sdp::is_flash_attention_available();
+    //return sdp::is_flash_attention_available();
+    return false;
 #else
     return false;
 #endif
@@ -3035,7 +3036,8 @@ Call this whenever a new thread is created in order to propagate values from
       "_can_use_flash_attention",
       [](const sdp::sdp_params& params, bool debug) {
 #if defined(USE_CUDA) || defined(USE_XPU)
-        return sdp::can_use_flash_attention(params, debug);
+        //return sdp::can_use_flash_attention(params, debug);
+	return false;
 #else
         return false;
 #endif

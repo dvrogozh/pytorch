@@ -35,8 +35,12 @@ inline std::ostream& operator<<(std::ostream& os, CaptureStatus status) {
 }
 
 inline CaptureStatus currentStreamCaptureStatusMayInitCtx() {
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   auto state = c10::xpu::getCurrentXPUStream().queue().ext_oneapi_get_state();
   return CaptureStatus(state);
+#else
+  return CaptureStatus(queue_state::executing);
+#endif
 }
 
 } // namespace c10::xpu

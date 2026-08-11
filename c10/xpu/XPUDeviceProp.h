@@ -3,6 +3,15 @@
 #include <c10/xpu/XPUMacros.h>
 #include <sycl/sycl.hpp>
 
+namespace sycl::ext::oneapi::experimental {
+#ifndef SYCL_EXT_ONEAPI_GRAPH
+  enum queue_state {
+    executing = 0,
+    recording = 1
+  };
+#endif
+}
+
 namespace c10::xpu {
 
 #define AT_FORALL_XPU_DEVICE_PROPERTIES(_)                                     \
@@ -19,99 +28,99 @@ namespace c10::xpu {
   _(driver_version)                                                            \
                                                                                \
   /* the SYCL version as a std::string in the form <major>.<minor> */          \
-  _(version)                                                                   \
+  /*_(version)*/                                                                   \
                                                                                \
   /* true if the SYCL device is available. Otherwise, return false. */         \
-  _(is_available)                                                              \
+  /*_(is_available)*/                                                              \
                                                                                \
   /* the maximum size in bytes of the arguments that can be passed to a        \
    * kernel. */                                                                \
-  _(max_parameter_size)                                                        \
+  /*_(max_parameter_size)*/                                                        \
                                                                                \
   /* the number of parallel compute units available to the device. */          \
-  _(max_compute_units)                                                         \
+  /*_(max_compute_units)*/                                                         \
                                                                                \
   /* the maximum dimensions that specify the global and local work-item IDs    \
    * used by the data parallel execution model. */                             \
-  _(max_work_item_dimensions)                                                  \
+  /*_(max_work_item_dimensions)*/                                                  \
                                                                                \
   /* the maximum number of workitems that are permitted in a work-group        \
    * executing a kernel on a single compute unit. */                           \
-  _(max_work_group_size)                                                       \
+  /*_(max_work_group_size)*/                                                       \
                                                                                \
   /* the maximum number of subgroups in a work-group for any kernel executed   \
    * on the device. */                                                         \
-  _(max_num_sub_groups)                                                        \
+  /*_(max_num_sub_groups)*/                                                        \
                                                                                \
   /* a std::vector of size_t containing the set of sub-group sizes supported   \
    * by the device. */                                                         \
-  _(sub_group_sizes)                                                           \
+  /*_(sub_group_sizes)*/                                                           \
                                                                                \
   /* the maximum configured clock frequency of this SYCL device in MHz. */     \
-  _(max_clock_frequency)                                                       \
+  /*_(max_clock_frequency)*/                                                       \
                                                                                \
   /* the default compute device address space size specified as an unsigned    \
    * integer value in bits. Must return either 32 or 64. */                    \
-  _(address_bits)                                                              \
+  /*_(address_bits)*/                                                              \
                                                                                \
   /* the maximum size of memory object allocation in bytes. */                 \
-  _(max_mem_alloc_size)                                                        \
+  /*_(max_mem_alloc_size)*/                                                        \
                                                                                \
   /* the minimum value in bits of the largest supported SYCL built-in data     \
    * type if this SYCL device is not of device type                            \
    * sycl::info::device_type::custom. */                                       \
-  _(mem_base_addr_align)                                                       \
+  /*_(mem_base_addr_align)*/                                                       \
                                                                                \
   /* a std::vector of info::fp_config describing the half/single/double        \
    * precision floating-point capability of this SYCL device. */               \
-  _(half_fp_config)                                                            \
-  _(single_fp_config)                                                          \
-  _(double_fp_config)                                                          \
+  /*_(half_fp_config)*/                                                            \
+  /*_(single_fp_config)*/                                                          \
+  /*_(double_fp_config)*/                                                          \
                                                                                \
   /* the size of global device memory in bytes. */                             \
-  _(global_mem_size)                                                           \
+  /*_(global_mem_size)*/                                                           \
                                                                                \
   /* the type of global memory cache supported. */                             \
-  _(global_mem_cache_type)                                                     \
+  /*_(global_mem_cache_type)*/                                                     \
                                                                                \
   /* the size of global memory cache in bytes. */                              \
-  _(global_mem_cache_size)                                                     \
+  /*_(global_mem_cache_size)*/                                                     \
                                                                                \
   /* the size of global memory cache line in bytes. */                         \
-  _(global_mem_cache_line_size)                                                \
+  /*_(global_mem_cache_line_size)*/                                                \
                                                                                \
   /* the type of local memory supported. */                                    \
-  _(local_mem_type)                                                            \
+  /*_(local_mem_type)*/                                                            \
                                                                                \
   /* the size of local memory arena in bytes. */                               \
-  _(local_mem_size)                                                            \
+  /*_(local_mem_size)*/                                                            \
                                                                                \
   /* the maximum number of sub-devices that can be created when this device is \
    * partitioned. */                                                           \
-  _(partition_max_sub_devices)                                                 \
+  /*_(partition_max_sub_devices)*/                                                 \
                                                                                \
   /* the resolution of device timer in nanoseconds. */                         \
-  _(profiling_timer_resolution)                                                \
+  /*_(profiling_timer_resolution)*/                                                \
                                                                                \
   /* the preferred native vector width size for built-in scalar types that can \
    * be put into vectors. */                                                   \
-  _(preferred_vector_width_char)                                               \
-  _(preferred_vector_width_short)                                              \
-  _(preferred_vector_width_int)                                                \
-  _(preferred_vector_width_long)                                               \
-  _(preferred_vector_width_float)                                              \
-  _(preferred_vector_width_double)                                             \
-  _(preferred_vector_width_half)                                               \
+  /*_(preferred_vector_width_char)*/                                               \
+  /*_(preferred_vector_width_short)*/                                              \
+  /*_(preferred_vector_width_int)*/                                                \
+  /*_(preferred_vector_width_long)*/                                               \
+  /*_(preferred_vector_width_float)*/                                              \
+  /*_(preferred_vector_width_double)*/                                             \
+  /*_(preferred_vector_width_half)*/                                               \
                                                                                \
   /* the native ISA vector width. The vector width is defined as the number of \
    * scalar elements that can be stored in the vector. */                      \
-  _(native_vector_width_char)                                                  \
-  _(native_vector_width_short)                                                 \
-  _(native_vector_width_int)                                                   \
-  _(native_vector_width_long)                                                  \
-  _(native_vector_width_float)                                                 \
-  _(native_vector_width_double)                                                \
-  _(native_vector_width_half)
+  /*_(native_vector_width_char)*/                                                  \
+  /*_(native_vector_width_short)*/                                                 \
+  /*_(native_vector_width_int)*/                                                   \
+  /*_(native_vector_width_long)*/                                                  \
+  /*_(native_vector_width_float)*/                                                 \
+  /*_(native_vector_width_double)*/                                                \
+  /*_(native_vector_width_half)*/
 
 #if SYCL_COMPILER_VERSION >= 20260100
 #define AT_FORALL_XPU_EXT_DEVICE_PROPERTIES_XE(_)                           \
@@ -203,16 +212,24 @@ namespace c10::xpu {
 #define DEFINE_PLATFORM_PROP(property, member) \
   _DEFINE_SYCL_PROP(sycl::info::platform, property, member)
 
-#define DEFINE_EXT_DEVICE_PROP(property, ...) \
-  _DEFINE_SYCL_PROP(sycl::ext::intel::info::device, property, property)
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
+  #define DEFINE_EXT_DEVICE_PROP(property, ...) \
+    _DEFINE_SYCL_PROP(sycl::ext::intel::info::device, property, property)
+#else
+  #define DEFINE_EXT_DEVICE_PROP(property, ...)
+#endif
 
 #define DEFINE_DEVICE_ASPECT(member) bool member;
 
 #define DEFINE_DEVICE_HAS_ASPECT(member) bool has_##member;
 
-#define DEFINE_EXP_DEVICE_PROP(property) \
-  _DEFINE_SYCL_PROP(                     \
-      sycl::ext::oneapi::experimental::info::device, property, property)
+#ifdef SYCL_EXT_ONEAPI_DEVICE_ARCHITECTURE
+  #define DEFINE_EXP_DEVICE_PROP(property) \
+    _DEFINE_SYCL_PROP(                     \
+        sycl::ext::oneapi::experimental::info::device, property, property)
+#else
+  #define DEFINE_EXP_DEVICE_PROP(property)
+#endif
 
 struct C10_XPU_API DeviceProp{
     AT_FORALL_XPU_DEVICE_PROPERTIES(DEFINE_DEVICE_PROP)

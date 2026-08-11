@@ -12,8 +12,12 @@ struct XPUCachingHostAllocatorImpl
     : public CachingHostAllocatorImpl<XPUStream, XPUEvent> {
   /* These following functions are runtime-related. */
   void allocate_host_memory(size_t size, void** ptr) override {
+#if 0
     *ptr = sycl::aligned_alloc_host(
         kHostAlignment, size, c10::xpu::get_device_context());
+#else
+    TORCH_CHECK(false, "sycl::aligned_alloc_host is not supported");
+#endif
     TORCH_CHECK(
         *ptr != nullptr,
         "Failed to allocate ",

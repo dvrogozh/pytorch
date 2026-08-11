@@ -13,10 +13,15 @@ namespace at::xpu {
 
 TORCH_XPU_API MempoolId_t graph_pool_handle();
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
 using xpuGraph_t = sycl::ext::oneapi::experimental::command_graph<
     sycl::ext::oneapi::experimental::graph_state::modifiable>;
 using xpuGraphExec_t = sycl::ext::oneapi::experimental::command_graph<
     sycl::ext::oneapi::experimental::graph_state::executable>;
+#else
+using xpuGraph_t = int;
+using xpuGraphExec_t = int;
+#endif
 
 struct TORCH_XPU_API XPUGraphImpl : public at::GraphImplInterface {
   XPUGraphImpl(const GraphImplArgs& args = {});

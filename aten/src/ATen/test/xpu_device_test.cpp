@@ -15,7 +15,9 @@ TEST(XpuDeviceTest, getDeviceProperties) {
 
   EXPECT_EQ(cur_device_prop->name, device_prop->name);
   EXPECT_EQ(cur_device_prop->platform_name, device_prop->platform_name);
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
   EXPECT_EQ(cur_device_prop->gpu_eu_count, device_prop->gpu_eu_count);
+#endif
 }
 
 TEST(XpuDeviceTest, getDeviceFromPtr) {

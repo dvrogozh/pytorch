@@ -73,8 +73,12 @@ bool XPUHooks::isPinnedPtr(const void* data) const {
     return false;
   }
 
+#if 0
   return sycl::usm::alloc::host ==
       sycl::get_pointer_type(data, c10::xpu::get_device_context());
+#else
+  TORCH_CHECK(false, "sycl::get_pointer_type is not supported");
+#endif
 }
 
 bool XPUHooks::isAvailable() const {

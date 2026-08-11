@@ -83,6 +83,7 @@ syclDevicePtr_t getPointer(
     return data_ptr;
 
   auto context = queuePtr->get_context();
+#if 0
   auto handle = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
   ze_memory_allocation_properties_t prop;
   prop.stype = ZE_STRUCTURE_TYPE_MEMORY_ALLOCATION_PROPERTIES;
@@ -103,6 +104,9 @@ syclDevicePtr_t getPointer(
           "Pointer argument references unknown type of memory at {}-th argument, err={}",
           idx,
           static_cast<int>(res)));
+#else
+  TORCH_CHECK(false, "sycl::get_native is not supported");
+#endif
 
   return data_ptr;
 }
@@ -196,6 +200,7 @@ inline ze_module_handle_t _createModule(
   auto& syclDevice =
       c10::xpu::get_raw_device(static_cast<c10::DeviceIndex>(device_idx));
   auto& syclContext = c10::xpu::get_device_context();
+#if 0
   auto device =
       sycl::get_native<sycl::backend::ext_oneapi_level_zero>(syclDevice);
   auto context =
@@ -233,8 +238,12 @@ inline ze_module_handle_t _createModule(
   }
   ZE_CHECK(error_no);
   return module;
+#else
+  TORCH_CHECK(false, "sycl::get_native is not supported");
+#endif
 }
 
+#if 0
 inline sycl::kernel* _createKernel(
     ze_module_handle_t module,
     const char* kernelName,
@@ -330,6 +339,7 @@ void launchKernel(
   };
   queuePtr->submit(cgf);
 }
+#endif
 
 /* Load the kernel into memory (called during torch.compile), and
   return a pointer to it (along with nregs and nspills).
@@ -347,6 +357,7 @@ PyObject* load_kernel(PyObject* self, PyObject* args) {
           args, "ssii", &filePath, &funcName, &sharedMemBytes, &device)) {
     return nullptr;
   }
+#if 0
   // Level-zero does not support get n_regs, so we return 0 here.
   uint32_t n_regs = 0;
   uint32_t n_spills = 0;
@@ -360,9 +371,13 @@ PyObject* load_kernel(PyObject* self, PyObject* args) {
       });
 
   return Py_BuildValue("(Oii)", kernel_py, n_regs, n_spills);
+#else
+  TORCH_CHECK(false, "sycl::kernel is not supported");
+#endif
   END_HANDLE_TH_ERRORS
 }
 
+#if 0
 PyObject* launch_kernel_inner(
     sycl::kernel* func,
     int gridX,
@@ -424,6 +439,7 @@ PyObject* launch_kernel_slow(
       queuePtr);
   Py_RETURN_NONE;
 }
+#endif
 
 /**
 *  Main entrypoint function called at runtime; called like this in python land:
@@ -469,6 +485,7 @@ PyObject* launch_kernel(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
   }
 
+#if 0
   sycl::kernel* func = reinterpret_cast<sycl::kernel*>(
       PyCapsule_GetPointer(kernel_py, "sycl_kernel")); // NOLINT
   sycl::queue* queuePtr = reinterpret_cast<sycl::queue*>(stream); // NOLINT
@@ -501,6 +518,9 @@ PyObject* launch_kernel(PyObject* self, PyObject* args) {
         varArgs,
         queuePtr);
   }
+#else
+  TORCH_CHECK(false, "sycl::kernel is not supported");
+#endif
   END_HANDLE_TH_ERRORS
 }
 

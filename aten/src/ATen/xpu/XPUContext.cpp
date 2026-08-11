@@ -92,9 +92,13 @@ bool canDeviceAccessPeer(DeviceIndex device, DeviceIndex peer) {
   if (device == peer) {
     return true;
   }
+#ifdef SYCL_EXT_ONEAPI_PEER_ACCESS
   return c10::xpu::get_raw_device(device).ext_oneapi_can_access_peer(
       c10::xpu::get_raw_device(peer),
       sycl::ext::oneapi::peer_access::access_supported);
+#else
+  TORCH_CHECK(false, "ext_oneapi_can_access_peer is not supported");
+#endif
 }
 
 } // namespace at::xpu

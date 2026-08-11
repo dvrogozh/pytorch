@@ -134,12 +134,18 @@ void initGlobalStreamState() {
 // Creates the reserved SYCL queue pools for the specified device. It should be
 // call only once.
 void initDeviceStreamState(DeviceIndex device) {
-  using namespace sycl::ext::oneapi::property;
   // Need to align with StreamIdType.
   const std::vector<sycl::property_list> properties = {
-      {sycl::property::queue::in_order(), queue::priority_low()},
-      {sycl::property::queue::in_order(), queue::priority_normal()},
-      {sycl::property::queue::in_order(), queue::priority_high()}};
+#ifdef SYCL_EXT_ONEAPI_QUEUE_PRIORITY
+      {sycl::property::queue::in_order(), sycl::ext::oneapi::property::queue::priority_low()},
+      {sycl::property::queue::in_order(), sycl::ext::oneapi::property::queue::priority_normal()},
+      {sycl::property::queue::in_order(), sycl::ext::oneapi::propertyqueue::priority_high()}
+#else
+      {/*sycl::property::queue::in_order()*/},
+      {/*sycl::property::queue::in_order()*/},
+      {/*sycl::property::queue::in_order()*/}
+#endif
+  };
   TORCH_CHECK(
       properties.size() == max_compile_time_stream_priorities,
       "The number of stream priorities should be equal to max_compile_time_stream_priorities");
@@ -147,7 +153,7 @@ void initDeviceStreamState(DeviceIndex device) {
     for (const auto i : c10::irange(kStreamsPerPool)) {
       auto& stream = streams[device][p][i];
       stream = std::make_unique<sycl::queue>(sycl::queue(
-          c10::xpu::get_device_context(),
+          //c10::xpu::get_device_context(),
           c10::xpu::get_raw_device(device),
           c10::xpu::asyncHandler,
           properties[p]));
@@ -213,6 +219,7 @@ int XPUStream::priority() const {
   StreamId stream_id = stream_.id();
   StreamIdType st = streamIdType(stream_id);
   if (C10_UNLIKELY(st == StreamIdType::EXT)) {
+#ifdef SYCL_EXT_ONEAPI_QUEUE_PRIORITY
     // Query external stream priority
     using namespace sycl::ext::oneapi::property;
     if (queue().has_property<queue::priority_normal>()) {
@@ -221,7 +228,9 @@ int XPUStream::priority() const {
       st = StreamIdType::HIGH;
     } else if (queue().has_property<queue::priority_low>()) {
       st = StreamIdType::LOW;
-    } else {
+    } else
+#endif
+    {
       // Default priority for SYCL queue is normal.
       st = StreamIdType::NORMAL;
     }

@@ -47,7 +47,23 @@ function(map_dpclang_version_to_icx major minor patch out_version_number)
   set(${out_version_number} "${VERSION_NUMBER_MATCH}" PARENT_SCOPE)
 endfunction()
 
-if("${XPU_SYCL_COMPILER}" MATCHES "dpclang")
+if("${XPU_SYCL_COMPILER}" MATCHES "clang")
+  find_program(SYCL_COMPILER clang++ REQUIRED)
+  set(SYCL_COMPILER_VERSION 20260000)
+  find_package(LLVM REQUIRED CONFIG)
+  find_path(SYCL_INCLUDE_DIR
+    NAMES sycl/sycl.hpp
+    HINTS ${LLVM_INCLUDE_DIRS}
+    NO_DEFAULT_PATH
+  )
+  find_library(SYCL_LIBRARY
+    NAMES LLVMSYCL
+    HINTS ${LLVM_LIBRARY_DIRS}
+    PATH_SUFFIXES ${LLVM_TARGET_TRIPLE}
+    NO_DEFAULT_PATH
+  )
+  cmake_path(GET SYCL_LIBRARY PARENT_PATH SYCL_LIBRARY_DIR)
+elseif("${XPU_SYCL_COMPILER}" MATCHES "dpclang")
   find_program(SYCL_COMPILER dpclang++)
   if(SYCL_COMPILER)
     parse_dpclang_version(

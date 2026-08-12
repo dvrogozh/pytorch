@@ -2934,6 +2934,7 @@ def main() -> None:
         DispatchKey.NestedTensorXPU,
     }
     if options.xpu or options.update_aoti_c_shim:
+        pass
         functions_keys.add(DispatchKey.XPU)
         aoti_backends.add(DispatchKey.XPU)
     else:

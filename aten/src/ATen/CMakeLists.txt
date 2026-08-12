@@ -85,8 +85,23 @@ file(GLOB cudnn_h CONFIGURE_DEPENDS "cudnn/*.h" "cudnn/*.cuh")
 file(GLOB cudnn_cpp CONFIGURE_DEPENDS "cudnn/*.cpp")
 file(GLOB ops_h CONFIGURE_DEPENDS "ops/*.h")
 
-file(GLOB xpu_h CONFIGURE_DEPENDS "xpu/*.h" "xpu/detail/*.h")
-file(GLOB xpu_cpp CONFIGURE_DEPENDS "xpu/*.cpp" "xpu/detail/*.cpp")
+if(BUILD_EAGER_MODE)
+  file(GLOB xpu_h CONFIGURE_DEPENDS "xpu/*.h" "xpu/detail/*.h")
+  file(GLOB xpu_cpp CONFIGURE_DEPENDS "xpu/*.cpp" "xpu/detail/*.cpp")
+else()
+  set(xpu_h ${CMAKE_CURRENT_SOURCE_DIR}/xpu/XPUGeneratorImpl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/XPUContext.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/XPUGraph.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/MemPool.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/EmptyTensor.h
+    )
+  set(xpu_cpp ${CMAKE_CURRENT_SOURCE_DIR}/xpu/XPUGeneratorImpl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/XPUContext.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/XPUGraph.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/MemPool.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/xpu/EmptyTensor.cpp
+    )
+endif()
 
 file(GLOB hip_h CONFIGURE_DEPENDS "hip/*.h" "hip/detail/*.h" "hip/*.cuh" "hip/detail/*.cuh" "hip/impl/*.h" "hip/tunable/*.cuh" "hip/tunable/*.h")
 file(GLOB hip_cpp CONFIGURE_DEPENDS "hip/*.cpp" "hip/detail/*.cpp" "hip/impl/*.cpp" "hip/tunable/*.cpp")
@@ -100,8 +115,10 @@ file(GLOB miopen_cpp CONFIGURE_DEPENDS "miopen/*.cpp")
 file(GLOB mkl_cpp CONFIGURE_DEPENDS "mkl/*.cpp")
 file(GLOB mkldnn_cpp CONFIGURE_DEPENDS "mkldnn/*.cpp")
 
-file(GLOB mkldnn_xpu_h CONFIGURE_DEPENDS "native/mkldnn/xpu/*.h" "native/mkldnn/xpu/detail/*.h")
-file(GLOB mkldnn_xpu_cpp CONFIGURE_DEPENDS "native/mkldnn/xpu/*.cpp" "native/mkldnn/xpu/detail/*.cpp")
+if(BUILD_EAGER_MODE)
+  file(GLOB mkldnn_xpu_h CONFIGURE_DEPENDS "native/mkldnn/xpu/*.h" "native/mkldnn/xpu/detail/*.h")
+  file(GLOB mkldnn_xpu_cpp CONFIGURE_DEPENDS "native/mkldnn/xpu/*.cpp" "native/mkldnn/xpu/detail/*.cpp")
+endif()
 
 file(GLOB native_cpp CONFIGURE_DEPENDS "native/*.cpp")
 file(GLOB native_mkl_cpp CONFIGURE_DEPENDS "native/mkl/*.cpp")
@@ -184,7 +201,9 @@ file(GLOB native_transformers_cuda_cu CONFIGURE_DEPENDS "native/transformers/cud
 file(GLOB native_transformers_cuda_cpp CONFIGURE_DEPENDS "native/transformers/cuda/*.cpp")
 file(GLOB native_transformers_hip_hip CONFIGURE_DEPENDS "native/transformers/hip/*.hip")
 file(GLOB native_transformers_hip_cpp CONFIGURE_DEPENDS "native/transformers/hip/*.cpp")
-file(GLOB native_transformers_xpu_cpp CONFIGURE_DEPENDS "native/transformers/xpu/*.cpp")
+if(BUILD_EAGER_MODE)
+  file(GLOB native_transformers_xpu_cpp CONFIGURE_DEPENDS "native/transformers/xpu/*.cpp")
+endif()
 file(GLOB native_quantized_cudnn_hip_cpp CONFIGURE_DEPENDS "native/quantized/cudnn/hip/*.cpp")
 file(GLOB native_utils_cpp CONFIGURE_DEPENDS "native/utils/*.cpp")
 file(GLOB flash_attention_cuda_kernels_cu CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/third_party/flash-attention/csrc/flash_attn/src/*.cu)
@@ -548,7 +567,9 @@ endif()
 if(USE_XPU)
   list(APPEND ATen_XPU_SRCS ${mkldnn_xpu_cpp})
   list(APPEND ATen_XPU_SRCS ${native_transformers_xpu_cpp})
-  list(APPEND ATen_XPU_DEPENDENCY_LIBS xpu_mkldnn)
+  if(USE_MKLDNN)
+    list(APPEND ATen_XPU_DEPENDENCY_LIBS xpu_mkldnn)
+  endif()
 
   list(APPEND ATen_XPU_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu)
   list(APPEND ATen_XPU_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu/detail)

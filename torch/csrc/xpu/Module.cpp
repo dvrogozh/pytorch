@@ -1,5 +1,5 @@
 #include <ATen/ATen.h>
-#include <ATen/xpu/Sleep.h>
+//#include <ATen/xpu/Sleep.h>
 #include <ATen/xpu/XPUContext.h>
 #include <ATen/xpu/XPUGeneratorImpl.h>
 #include <ATen/xpu/XPUGraphsUtils.h>
@@ -297,12 +297,16 @@ static void registerXpuDeviceProperties(PyObject* module) {
     }
     return std::move(stream).str();
   };
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
   auto gpu_subslice_count = [](const DeviceProp& prop) {
     return (prop.gpu_eu_count / prop.gpu_eu_count_per_subslice);
   };
+#endif
+#ifdef SYCL_EXT_ONEAPI_DEVICE_ARCHITECTURE
   auto get_device_architecture = [](const DeviceProp& prop) {
     return static_cast<int64_t>(prop.architecture);
   };
+#endif
   // Wrapper class for XPU UUID
   struct XPUuuid {
     XPUuuid(const std::array<unsigned char, 16>& uuid) : bytes(uuid) {}
@@ -328,7 +332,7 @@ static void registerXpuDeviceProperties(PyObject* module) {
       ._(name)                                                   \
       ._(platform_name)                                          \
       ._(vendor)                                                 \
-      ._(device_id)                                              \
+      /*._(device_id)                                              \
       ._(driver_version)                                         \
       ._(version)                                                \
       ._(max_compute_units)                                      \
@@ -345,47 +349,48 @@ static void registerXpuDeviceProperties(PyObject* module) {
       ._(has_bfloat16_conversions)                               \
       ._(has_subgroup_matrix_multiply_accumulate)                \
       ._(has_subgroup_matrix_multiply_accumulate_tensor_float32) \
-      ._(has_subgroup_2d_block_io)
+      ._(has_subgroup_2d_block_io)*/
 
   THXP_FORALL_DEVICE_PROPERTIES(DEFINE_READONLY_MEMBER)
       .def_readonly("is_integrated_gpu", &DeviceProp::is_integrated_gpu)
-      .def_readonly("total_memory", &DeviceProp::global_mem_size)
+      //.def_readonly("total_memory", &DeviceProp::global_mem_size)
       // TODO: Expose cache size by level when available from SYCL
-      .def_readonly("last_level_cache_size", &DeviceProp::global_mem_cache_size)
-      .def_property_readonly("gpu_subslice_count", gpu_subslice_count)
-      .def_property_readonly("architecture", get_device_architecture)
-      .def_property_readonly("type", get_device_type)
-      .def_property_readonly(
-          "uuid",
-          [](const DeviceProp& prop) -> XPUuuid { return XPUuuid(prop.uuid); })
+      //.def_readonly("last_level_cache_size", &DeviceProp::global_mem_cache_size)
+      //.def_property_readonly("gpu_subslice_count", gpu_subslice_count)
+      //.def_property_readonly("architecture", get_device_architecture)
+      //.def_property_readonly("type", get_device_type)
+      //.def_property_readonly(
+      //    "uuid",
+      //    [](const DeviceProp& prop) -> XPUuuid { return XPUuuid(prop.uuid); })
       .def(
           "__repr__",
-          [&get_device_type, &gpu_subslice_count](const DeviceProp& prop) {
+          [&get_device_type/*, &gpu_subslice_count*/](const DeviceProp& prop) {
             std::ostringstream stream;
             stream << "_XpuDeviceProperties(name='" << prop.name
                    << "', platform_name='" << prop.platform_name << "', type='"
-                   << get_device_type(prop) << "', device_id=0x" << std::hex
+                   << get_device_type(prop) /* << "', device_id=0x" << std::hex
                    << std::uppercase << prop.device_id << std::dec << ", uuid="
                    << uuid_to_string(
-                          reinterpret_cast<const char*>(prop.uuid.data()))
-                   << ", driver_version='" << prop.driver_version
-                   << "', total_memory="
-                   << prop.global_mem_size / (1024ull * 1024)
-                   << "MB, local_mem_size=" << prop.local_mem_size / 1024ull
-                   << "KB, last_level_cache_size="
-                   << prop.global_mem_cache_size / 1024ull
-                   << "KB, max_compute_units=" << prop.max_compute_units
-                   << ", memory_clock_rate=" << prop.memory_clock_rate
-                   << "MHz, memory_bus_width=" << prop.memory_bus_width
-                   << "-bit, gpu_eu_count=" << prop.gpu_eu_count
-                   << ", gpu_subslice_count=" << gpu_subslice_count(prop)
-                   << ", max_work_group_size=" << prop.max_work_group_size
-                   << ", max_num_sub_groups=" << prop.max_num_sub_groups
-                   << ", sub_group_sizes=[" << prop.sub_group_sizes
-                   << "], has_fp16=" << prop.has_fp16
-                   << ", has_fp64=" << prop.has_fp64
-                   << ", has_atomic64=" << prop.has_atomic64
-                   << ", is_integrated_gpu=" << prop.is_integrated_gpu << ")";
+                          reinterpret_cast<const char*>(prop.uuid.data()))*/
+                   //<< ", driver_version='" << prop.driver_version
+                   //<< "', total_memory="
+                   //<< prop.global_mem_size / (1024ull * 1024)
+                   //<< "MB, local_mem_size=" << prop.local_mem_size / 1024ull
+                   //<< "KB, last_level_cache_size="
+                   //<< prop.global_mem_cache_size / 1024ull
+                   //<< "KB, max_compute_units=" << prop.max_compute_units
+                   //<< ", memory_clock_rate=" << prop.memory_clock_rate
+                   //<< "MHz, memory_bus_width=" << prop.memory_bus_width
+                   //<< "-bit, gpu_eu_count=" << prop.gpu_eu_count
+                   //<< ", gpu_subslice_count=" << gpu_subslice_count(prop)
+                   //<< ", max_work_group_size=" << prop.max_work_group_size
+                   //<< ", max_num_sub_groups=" << prop.max_num_sub_groups
+                   //<< ", sub_group_sizes=[" << prop.sub_group_sizes
+                   //<< "], has_fp16=" << prop.has_fp16
+                   //<< ", has_fp64=" << prop.has_fp64
+                   //<< ", has_atomic64=" << prop.has_atomic64
+                   //<< ", is_integrated_gpu=" << prop.is_integrated_gpu << ")"
+		   ;
             return std::move(stream).str();
           });
 }
@@ -460,7 +465,7 @@ static void initXpuMethodBindings(PyObject* module) {
       [](c10::DeviceIndex device, c10::DeviceIndex peer) {
         return at::xpu::canDeviceAccessPeer(device, peer);
       });
-  m.def("_xpu_sleep", [](uint64_t cycles) { at::xpu::sleep(cycles); });
+  //m.def("_xpu_sleep", [](uint64_t cycles) { at::xpu::sleep(cycles); });
   m.def("_xpu_getMemoryFraction", [](c10::DeviceIndex device) {
     return c10::xpu::XPUCachingAllocator::getMemoryFraction(device);
   });

@@ -4,19 +4,21 @@
 #include <iostream>
 
 // XPU Graphs utils used by c10 and aten.
-using namespace sycl::ext::oneapi::experimental;
+//using namespace sycl::ext::oneapi::experimental;
 namespace c10::xpu {
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
 static_assert(
     int8_t(queue_state::executing) == 0,
     "unexpected int(queue_state::executing) value");
 static_assert(
     int8_t(queue_state::recording) == 1,
     "unexpected int(queue_state::recording) value");
+#endif
 
 enum class CaptureStatus : int8_t {
-  Executing = int8_t(queue_state::executing),
-  Recording = int8_t(queue_state::recording)
+  Executing, //= int8_t(queue_state::executing),
+  Recording //= int8_t(queue_state::recording)
 };
 
 inline std::ostream& operator<<(std::ostream& os, CaptureStatus status) {
@@ -35,8 +37,12 @@ inline std::ostream& operator<<(std::ostream& os, CaptureStatus status) {
 }
 
 inline CaptureStatus currentStreamCaptureStatusMayInitCtx() {
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   auto state = c10::xpu::getCurrentXPUStream().queue().ext_oneapi_get_state();
   return CaptureStatus(state);
+#else
+  TORCH_CHECK(false, "ext_oneapi_get_state is not supported");
+#endif
 }
 
 } // namespace c10::xpu

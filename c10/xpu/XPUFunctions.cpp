@@ -44,13 +44,17 @@ void enumDevices(std::vector<std::unique_ptr<sycl::device>>& devices) {
   // See Note [Device Management] for more details.
   auto platform_list = sycl::platform::get_platforms();
   auto is_igpu = [](const sycl::device& device) {
+#ifdef SYCL_EXT_ONEAPI_DEVICE_IS_INTEGRATED_GPU
     return device.has(sycl::aspect::ext_oneapi_is_integrated_gpu);
+#else
+    return false;
+#endif
   };
 
   // Check if a platform contains at least one GPU (either iGPU or dGPU).
   auto has_gpu = [&is_igpu](const sycl::platform& platform, bool check_igpu) {
     // Only consider platforms using the Level Zero backend.
-    if (platform.get_backend() != sycl::backend::ext_oneapi_level_zero) {
+    if (platform.get_backend() != sycl::backend::level_zero/*sycl::backend::ext_oneapi_level_zero*/) {
       return false;
     }
     // Check if the platform contains at least one GPU.
@@ -118,6 +122,8 @@ inline void initGlobalDevicePoolState() {
   TORCH_CHECK(
       gDevicePool.devices.size() <= std::numeric_limits<DeviceIndex>::max(),
       "Too many XPU devices, DeviceIndex overflowed!");
+
+#ifdef SYCL_EXT_ONEAPI_DEVICE_ARCHITECTURE
   // Check each device's architecture and issue a warning if it is older than
   // the officially supported range (Intel GPUs starting from Arc (Alchemist)
   // series).
@@ -134,12 +140,15 @@ inline void initGlobalDevicePoolState() {
           "https://docs.pytorch.org/docs/main/notes/get_start_xpu.html#hardware-prerequisite");
     }
   }
+#endif
 
+#ifdef SYCL_KHR_DEFAULT_CONTEXT
   // The default context is utilized for each Intel GPU device, allowing the
   // retrieval of the context from any GPU device.
   const auto& platform = gDevicePool.devices[0]->get_platform();
   gDevicePool.context =
       std::make_unique<sycl::context>(platform.khr_get_default_context());
+#endif
 }
 
 inline void initDevicePoolCallOnce() {
@@ -151,7 +160,7 @@ inline void initDevicePoolCallOnce() {
 
 void initDeviceProperties(DeviceProp* device_prop, DeviceIndex device) {
   using namespace sycl::info;
-  using namespace sycl::ext;
+  //using namespace sycl::ext;
   // Get raw sycl device associated with device index.
   auto& raw_device = *gDevicePool.devices[device];
 
@@ -183,15 +192,23 @@ void initDeviceProperties(DeviceProp* device_prop, DeviceIndex device) {
   device_prop->platform_name =
       raw_device.get_info<device::platform>().get_info<platform::name>();
 
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
   AT_FORALL_XPU_EXT_DEVICE_PROPERTIES(ASSIGN_EXT_DEVICE_PROP);
+#endif
 
+#ifdef SYCL_EXT_ONEAPI_DEVICE_IS_INTEGRATED_GPU
   ASSIGN_DEVICE_ASPECT(is_integrated_gpu)
+#endif
 
   AT_FORALL_XPU_DEVICE_ASPECT(ASSIGN_DEVICE_HAS_ASPECT);
 
+#ifdef SYCL_EXT_ONEAPI_KERNEL_COMPILER_OPENCL
   AT_FORALL_XPU_EXP_CL_ASPECT(ASSIGN_EXP_CL_ASPECT);
+#endif
 
+#ifdef SYCL_EXT_ONEAPI_DEVICE_ARCHITECTURE
   AT_FORALL_XPU_EXP_DEVICE_PROPERTIES(ASSIGN_EXP_DEVICE_PROP);
+#endif
 
 #if SYCL_COMPILER_VERSION >= 20260100
   // TODO: Remove once driver supports querying Xe topology properties.
@@ -238,6 +255,7 @@ void get_device_properties(DeviceProp* device_prop, DeviceIndex device) {
 DeviceIndex get_device_idx_from_pointer(void* ptr) {
   initDevicePoolCallOnce();
   TORCH_CHECK(ptr, "ptr is an invalid pointer.");
+#if 0
   auto type = sycl::get_pointer_type(ptr, get_device_context());
   TORCH_CHECK(
       type == sycl::usm::alloc::device, "ptr is not a device type pointer.");
@@ -253,6 +271,9 @@ DeviceIndex get_device_idx_from_pointer(void* ptr) {
       "Can't find the pointer from XPU devices.");
   return static_cast<DeviceIndex>(
       std::distance(gDevicePool.devices.begin(), it));
+#else
+  return 0;
+#endif
 }
 
 DeviceIndex device_count() {

@@ -64,6 +64,7 @@ void XPUGraphImpl::capture_begin(
       "This XPUGraph instance already owns a captured graph. "
       "To capture a new graph, create a new instance.");
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   // default generator is always registered
   auto* gen = get_generator_or_default<XPUGeneratorImpl>(
       std::nullopt, xpu::detail::getDefaultXPUGenerator());
@@ -107,7 +108,6 @@ void XPUGraphImpl::capture_begin(
       mempool_id_, [filter](c10::Stream stream) {
         return filter(XPUStream(XPUStream::UNCHECKED, stream));
       });
-
   // Enable sycl graph native recording mode for sycl compiler version >=
   // 2026.1.0, except on PVC.
   auto sycl_property = sycl::property_list{};
@@ -124,7 +124,6 @@ void XPUGraphImpl::capture_begin(
         "XPUGraph: Please use a PyTorch build compiled with oneAPI 2026.1.0 or newer for latest runtime support.");
   }
 #endif
-
   auto graph_impl = xpuGraph_t(capture_stream_.queue(), sycl_property);
   graph_ = std::make_unique<xpuGraph_t>(std::move(graph_impl));
   graph_->begin_recording(capture_stream_.queue());
@@ -133,6 +132,9 @@ void XPUGraphImpl::capture_begin(
       capture_stream_.queue().ext_oneapi_get_state() == queue_state::recording);
 
   c10::xpu::XPUCachingAllocator::markCaptureBegin(capture_dev_);
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 void XPUGraphImpl::capture_end() {
@@ -142,6 +144,7 @@ void XPUGraphImpl::capture_end() {
       stream == capture_stream_,
       "Capture must end on the same stream it began on.");
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   graph_->end_recording();
 
   c10::xpu::XPUCachingAllocator::markCaptureEnd(capture_dev_);
@@ -174,6 +177,9 @@ void XPUGraphImpl::capture_end() {
       has_graph_ = false;
     }
   }
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 void XPUGraphImpl::instantiate() {
@@ -181,6 +187,7 @@ void XPUGraphImpl::instantiate() {
       capture_ended_,
       "capture_end() must have been called before calling instantiate");
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   if (has_graph_exec_) {
     TORCH_CHECK(
         keep_graph_,
@@ -190,6 +197,9 @@ void XPUGraphImpl::instantiate() {
   auto graph_exec_impl = graph_->finalize();
   graph_exec_ = std::make_unique<xpuGraphExec_t>(std::move(graph_exec_impl));
   has_graph_exec_ = true;
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 void XPUGraphImpl::replay() {
@@ -197,6 +207,7 @@ void XPUGraphImpl::replay() {
       capture_ended_,
       "Called XPUGraph::replay without a preceding successful capture.");
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   if (!has_graph_exec_) {
     TORCH_INTERNAL_ASSERT(keep_graph_);
     instantiate();
@@ -213,6 +224,9 @@ void XPUGraphImpl::replay() {
 
   auto& queue = at::xpu::getCurrentXPUStream().queue();
   queue.ext_oneapi_graph(*graph_exec_);
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 void XPUGraphImpl::reset() {
@@ -221,6 +235,7 @@ void XPUGraphImpl::reset() {
     at::getHostAllocator(at::kXPU)->release_pool(mempool_id_);
     capture_ended_ = false;
   }
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   if (has_graph_) {
     graph_.reset();
     has_graph_ = false;
@@ -229,6 +244,9 @@ void XPUGraphImpl::reset() {
     graph_exec_.reset();
     has_graph_exec_ = false;
   }
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 void XPUGraphImpl::enable_debug_mode() {
@@ -242,6 +260,7 @@ void XPUGraphImpl::debug_dump(const std::string& debug_path) {
       "debug_path must end with .dot extension, got: ",
       debug_path);
 
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   if (_xpu_graphs_debug || keep_graph_) {
     TORCH_WARN("DEBUG: calling debug_dump()");
     if (has_graph_) {
@@ -256,6 +275,9 @@ void XPUGraphImpl::debug_dump(const std::string& debug_path) {
     TORCH_WARN(
         "XPU Graphs debug not enabled, set with [graph].enable_debug_mode()");
   }
+#else
+  TORCH_CHECK(false, "ext_oneapi_get_graph is not supported");
+#endif
 }
 
 xpuGraph_t* XPUGraphImpl::raw_xpu_graph() {
@@ -265,14 +287,22 @@ xpuGraph_t* XPUGraphImpl::raw_xpu_graph() {
   TORCH_CHECK(
       has_graph_,
       "You cannot access the raw xpuGraph_t instance until capture_end() has been called");
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   return graph_.get();
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 xpuGraphExec_t* XPUGraphImpl::raw_xpu_graph_exec() {
   TORCH_CHECK(
       has_graph_exec_,
       "You cannot access the raw xpuGraphExec_t instance until instantiate() has been called");
+#ifdef SYCL_EXT_ONEAPI_GRAPH
   return graph_exec_.get();
+#else
+  TORCH_CHECK(false, "ext_oneapi_graph is not supported");
+#endif
 }
 
 // Returns an id another graph's capture_begin can use to share the same memory

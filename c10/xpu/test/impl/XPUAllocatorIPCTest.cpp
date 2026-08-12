@@ -107,9 +107,13 @@ int main(int argc, char* argv[]) {
   if (device <= 0) {
     return 0;
   }
+#ifdef SYCL_EXT_ONEAPI_INTER_PROCESS_COMMUNICATION
   if (!c10::xpu::get_raw_device(0).has(sycl::aspect::ext_oneapi_ipc_memory)) {
     return 0;
   }
   c10::xpu::XPUCachingAllocator::init(device);
   return RUN_ALL_TESTS();
+#else
+  return 0;
+#endif
 }

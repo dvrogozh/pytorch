@@ -62,7 +62,7 @@ void THXPGraph_init(PyObject* module) {
           "debug_dump",
           torch::wrap_pybind_function_no_gil(&at::xpu::XPUGraph::debug_dump),
           py::arg("debug_path"))
-      .def(
+      /*.def(
           "raw_xpu_graph",
           [](at::xpu::XPUGraph& self) {
             at::xpu::xpuGraph_t* graph = self.raw_xpu_graph();
@@ -75,5 +75,5 @@ void THXPGraph_init(PyObject* module) {
             at::xpu::xpuGraphExec_t* graph_exec = self.raw_xpu_graph_exec();
             return reinterpret_cast<uintptr_t>(graph_exec);
           },
-          py::call_guard<py::gil_scoped_release>());
+          py::call_guard<py::gil_scoped_release>())*/;
 }

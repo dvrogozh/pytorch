@@ -122,6 +122,7 @@ bool BlockComparatorAddress(const Block* a, const Block* b) {
       reinterpret_cast<uintptr_t>(b->ptr);
 }
 
+#ifdef SYCL_EXT_ONEAPI_VIRTUAL_MEM
 // Represents a contiguous virtual memory segment mapped for allocation.
 struct SegmentRange {
   SegmentRange(void* addr, size_t bytes)
@@ -355,6 +356,7 @@ struct ExpandableSegment {
   // Peer devices on which this memory could be accessible, reserved.
   std::vector<c10::DeviceIndex> peers_;
 };
+#endif // SYCL_EXT_ONEAPI_VIRTUAL_MEM
 
 struct AllocParams {
   AllocParams(
@@ -434,11 +436,11 @@ void allocPrimitive(void** ptr, size_t size, AllocParams& p) {
   if (p.pool->owner_PrivatePool && p.pool->owner_PrivatePool->allocator()) {
     *ptr = p.pool->owner_PrivatePool->allocator()->raw_alloc(size);
   } else {
-    *ptr = sycl::aligned_alloc_device(
+    /**ptr = sycl::aligned_alloc_device(
         kDeviceAlignment,
         size,
         xpu::get_raw_device(p.device()),
-        xpu::get_device_context());
+        xpu::get_device_context());*/
   }
 }
 
@@ -505,8 +507,10 @@ class RingBuffer {
   std::vector<T>* alloc_trace;
 };
 
+#ifdef SYCL_EXT_ONEAPI_INTER_PROCESS_COMMUNICATION
 static char SHAREABLE_HANDLE_VERSION = 1;
 enum ShareableHandleType : char { SHAREABLE_XPU_MALLOC = 'c' };
+#endif
 
 } // anonymous namespace
 
@@ -669,6 +673,7 @@ class DeviceCachingAllocator {
   }
 
   void process_events(const std::shared_ptr<GatheredContext>& context) {
+#if 0
     insert_events_deferred_until_no_capture(context);
     using namespace sycl::info;
     for (auto it = xpu_events.begin(); it != xpu_events.end();) {
@@ -693,6 +698,7 @@ class DeviceCachingAllocator {
         it++;
       }
     }
+#endif
   }
 
   static size_t round_size(size_t size) {
@@ -736,6 +742,7 @@ class DeviceCachingAllocator {
     }
   }
 
+#ifdef SYCL_EXT_ONEAPI_VIRTUAL_MEM
   // Finds the first (lowest-address) block in any segment that has sufficient
   // contiguous free virtual address space to satisfy `size`. The available
   // space may span multiple adjacent blocks, which can include both free and
@@ -890,6 +897,7 @@ class DeviceCachingAllocator {
     pool->blocks.erase(candidate);
     return candidate;
   }
+#endif // SYCL_EXT_ONEAPI_VIRTUAL_MEM
 
   bool get_free_block(AllocParams& p) {
     BlockPool& pool = *p.pool;
@@ -951,6 +959,7 @@ class DeviceCachingAllocator {
                 size >
             allowed_memory_maximum) {
       return false;
+#ifdef SYCL_EXT_ONEAPI_VIRTUAL_MEM
     } else if (AcceleratorAllocatorConfig::use_expandable_segments()) {
       TORCH_CHECK(
           !active_pool,
@@ -962,6 +971,7 @@ class DeviceCachingAllocator {
         p.pool->owner_PrivatePool->allocation_count++;
       }
       return bool(p.block);
+#endif
     } else {
       allocPrimitive(&ptr, size, p);
       if (!ptr) {
@@ -1016,6 +1026,7 @@ class DeviceCachingAllocator {
     xpu_events.clear();
   }
 
+#ifdef SYCL_EXT_ONEAPI_VIRTUAL_MEM
   void release_expandable_segment(Block* block) {
     // See Note [Safe to Free Blocks on BlockPool], additional synchronization
     // is unnecessary here because this function is only called by
@@ -1036,6 +1047,7 @@ class DeviceCachingAllocator {
     delete block->expandable_segment;
     delete block;
   }
+#endif // SYCL_EXT_ONEAPI_VIRTUAL_MEM
 
   void release_block(
       Block* block,
@@ -1078,6 +1090,7 @@ class DeviceCachingAllocator {
     delete block;
   }
 
+#ifdef SYCL_EXT_ONEAPI_VIRTUAL_MEM
   void unmap_block(
       Block* block,
       const std::shared_ptr<GatheredContext>& context) {
@@ -1146,6 +1159,7 @@ class DeviceCachingAllocator {
         block->pool->owner_MempoolId(),
         context ? context : block->context_when_segment_allocated);
   }
+#endif // SYCL_EXT_ONEAPI_VIRTUAL_MEM
 
   void release_blocks(
       BlockPool& pool,
@@ -1164,6 +1178,7 @@ class DeviceCachingAllocator {
         release_block(block, context);
       }
     }
+#ifdef SYCL_EXT_ONEAPI_PEER_ACCESS
     for (Block* block : to_unmap) {
       unmap_block(block, context);
       // After unmap_block(), expandable segment blocks with no neighbors are
@@ -1172,6 +1187,7 @@ class DeviceCachingAllocator {
         release_expandable_segment(block);
       }
     }
+#endif // SYCL_EXT_ONEAPI_PEER_ACCESS
   }
 
   bool release_cached_blocks(
@@ -1333,11 +1349,13 @@ class DeviceCachingAllocator {
   void insert_events(Block* block) {
     stream_set streams(std::move(block->stream_uses));
     TORCH_INTERNAL_ASSERT(block->stream_uses.empty());
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_BARRIER
     for (auto& stream : streams) {
       block->event_count++;
       xpu_events[stream].emplace_back(
           stream.queue().ext_oneapi_submit_barrier(), block);
     }
+#endif
   }
 
   // Returns true iff the calling thread's current stream is actively recording
@@ -1470,18 +1488,20 @@ class DeviceCachingAllocator {
     if (!block_found) {
       const auto& raw_device = c10::xpu::get_raw_device(device);
       const auto device_total =
-          raw_device.get_info<sycl::info::device::global_mem_size>();
+          0; //raw_device.get_info<sycl::info::device::global_mem_size>();
       // Estimate the available device memory when the SYCL runtime does not
       // support the corresponding aspect (ext_intel_free_memory).
       size_t device_free = device_total -
           stats.reserved_bytes[static_cast<size_t>(StatType::AGGREGATE)]
               .current;
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
       // TODO: Remove the aspect check once the SYCL runtime bug is fixed on
       // affected devices.
       if (raw_device.has(sycl::aspect::ext_intel_free_memory)) {
         device_free =
             raw_device.get_info<sycl::ext::intel::info::device::free_memory>();
       }
+#endif
       std::string allowed_info;
       if (set_fraction) {
         allowed_info = format_size(allowed_memory_maximum) + " allowed; ";
@@ -1792,7 +1812,8 @@ class DeviceCachingAllocator {
 
   std::pair<size_t, size_t> getMemoryInfo() {
     const auto& device = c10::xpu::get_raw_device(device_index);
-    const size_t total = device.get_info<sycl::info::device::global_mem_size>();
+    const size_t total = 0;//device.get_info<sycl::info::device::global_mem_size>();
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
     TORCH_CHECK(
         device.has(sycl::aspect::ext_intel_free_memory),
         "The device (",
@@ -1803,6 +1824,9 @@ class DeviceCachingAllocator {
     const size_t free =
         device.get_info<sycl::ext::intel::info::device::free_memory>();
     return {free, total};
+#else
+    return {total, total};
+#endif
   }
 
   double getMemoryFraction() {
@@ -1810,17 +1834,17 @@ class DeviceCachingAllocator {
       return 1.0;
     }
 
-    const auto device_total =
-        xpu::get_raw_device(device_index)
-            .get_info<sycl::info::device::global_mem_size>();
+    const auto device_total = 0;
+        /*xpu::get_raw_device(device_index)
+            .get_info<sycl::info::device::global_mem_size>()*/;
     return static_cast<double>(allowed_memory_maximum) /
         static_cast<double>(device_total);
   }
 
   void setMemoryFraction(double fraction) {
-    const auto device_total =
-        xpu::get_raw_device(device_index)
-            .get_info<sycl::info::device::global_mem_size>();
+    const auto device_total = 0;
+        /*xpu::get_raw_device(device_index)
+            .get_info<sycl::info::device::global_mem_size>();*/
     allowed_memory_maximum =
         static_cast<size_t>(fraction * static_cast<double>(device_total));
     set_fraction = true;
@@ -1847,6 +1871,7 @@ class DeviceCachingAllocator {
 #ifdef _WIN32
     TORCH_CHECK(false, "IPC sharing is not supported on Windows.");
 #endif
+#ifdef SYCL_EXT_ONEAPI_INTER_PROCESS_COMMUNICATION
     std::ostringstream ss;
     ss.put(SHAREABLE_HANDLE_VERSION);
     ptrdiff_t offset = 0;
@@ -1872,6 +1897,9 @@ class DeviceCachingAllocator {
     ss.write(
         reinterpret_cast<const char*>(handle_data.data()), handle_data.size());
     return ShareableHandle{.offset = offset, .handle = ss.str()};
+#else
+    TORCH_CHECK(false, "IPC sharing is not supported");
+#endif // SYCL_EXT_ONEAPI_INTER_PROCESS_COMMUNICATION
   }
 
   // Called by XPUGraph::capture_begin
@@ -1981,6 +2009,7 @@ class NativeCachingAllocator : public XPUAllocator {
 #ifdef _WIN32
       TORCH_CHECK(false, "IPC sharing is not supported on Windows.");
 #endif
+#ifdef SYCL_EXT_ONEAPI_INTER_PROCESS_COMMUNICATION
       std::istringstream ss(handle);
       auto version = ss.get();
       TORCH_CHECK(
@@ -2001,17 +2030,22 @@ class NativeCachingAllocator : public XPUAllocator {
           handle_data,
           c10::xpu::get_device_context(),
           c10::xpu::get_raw_device(device));
+#else
+      TORCH_CHECK(false, "IPC sharing is not supported.");
+#endif
     }
 
     // clear() must be called explicitly to release IPC resources. Using a
     // destructor would risk calling ipc_memory::close after the SYCL runtime
     // has already shut down during process exit.
     void clear() {
+#ifdef SYCL_EXT_ONEAPI_INTER_PROCESS_COMMUNICATION
       if (xpu_ipc_ptr) {
         sycl::ext::oneapi::experimental::ipc_memory::close(
             xpu_ipc_ptr, c10::xpu::get_device_context());
         xpu_ipc_ptr = nullptr;
       }
+#endif
     }
 
     void* ptr() {
@@ -2207,8 +2241,12 @@ class NativeCachingAllocator : public XPUAllocator {
   void enablePeerAccess(c10::DeviceIndex dev, c10::DeviceIndex dev_to_access) {
     assertValidDevice(dev);
     assertValidDevice(dev_to_access);
+#ifdef SYCL_EXT_ONEAPI_PEER_ACCESS
     c10::xpu::get_raw_device(dev).ext_oneapi_enable_peer_access(
         c10::xpu::get_raw_device(dev_to_access));
+#else
+    TORCH_CHECK(false, "Peer access is not supported")
+#endif
   }
 
   std::pair<size_t, size_t> getMemoryInfo(DeviceIndex device) override {

@@ -32,8 +32,10 @@ TEST(XPUDeviceTest, DeviceProperties) {
   c10::xpu::DeviceProp device_prop{};
   c10::xpu::get_device_properties(&device_prop, 0);
 
+#ifdef SYCL_EXT_INTEL_DEVICE_INFO
   EXPECT_TRUE(device_prop.max_compute_units > 0);
   EXPECT_TRUE(device_prop.gpu_eu_count > 0);
+#endif
 
 #if SYCL_COMPILER_VERSION >= 20260100
   EXPECT_TRUE(device_prop.xe_stack_count > 0);

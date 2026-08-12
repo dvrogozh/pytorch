@@ -15,6 +15,14 @@ static bool has_xpu() {
   return c10::xpu::device_count() > 0;
 }
 
+static const std::vector<sycl::property_list> g_queue_props = {
+#ifdef SYCL_EXT_ONEAPI_QUEUE_PRIORITY
+  {sycl::property::queue::in_order(), sycl::ext::oneapi::property::queue::priority_normal()}
+#else
+  {/*sycl::property::queue::in_order()*/}
+#endif
+};
+
 TEST(XPUStreamTest, CopyAndMoveTest) {
   if (!has_xpu()) {
     return;
@@ -190,13 +198,17 @@ TEST(XPUStreamTest, StreamFunction) {
   initHostData(hostData, numel);
 
   auto stream = c10::xpu::getStreamFromPool();
+#ifdef SYCL_EXT_ONEAPI_QUEUE_EMPTY
   EXPECT_TRUE(stream.query());
+#endif
   int* deviceData = sycl::malloc_device<int>(numel, stream);
 
   // H2D
   asyncMemCopy(stream, deviceData, hostData, sizeof(int) * numel);
   c10::xpu::syncStreamsOnDevice();
+#ifdef SYCL_EXT_ONEAPI_QUEUE_EMPTY
   EXPECT_TRUE(stream.query());
+#endif
 
   clearHostData(hostData, numel);
 
@@ -226,12 +238,12 @@ TEST(XPUStreamTest, ExternalTest) {
 
   c10::DeviceGuard device_guard(c10::Device(c10::DeviceType::XPU, 0));
 
-  using namespace sycl::ext::oneapi::property;
   sycl::queue* stream = new sycl::queue(
-      c10::xpu::get_device_context(),
+      //c10::xpu::get_device_context(),
       c10::xpu::get_raw_device(0),
       c10::xpu::asyncHandler,
-      {sycl::property::queue::in_order(), queue::priority_normal()});
+      g_queue_props
+  );
 
   at::xpu::XPUStream myStream = at::xpu::getStreamFromExternal(stream, 0);
 
@@ -259,22 +271,21 @@ TEST(XPUStreamTest, ExternalMultiDeviceTest) {
   sycl::queue* stream_0 = nullptr;
   sycl::queue* stream_1 = nullptr;
 
-  using namespace sycl::ext::oneapi::property;
   {
     c10::DeviceGuard device_guard(c10::Device(c10::DeviceType::XPU, 0));
     stream_0 = new sycl::queue(
-        c10::xpu::get_device_context(),
+        //c10::xpu::get_device_context(),
         c10::xpu::get_raw_device(0),
         c10::xpu::asyncHandler,
-        {sycl::property::queue::in_order(), queue::priority_normal()});
+	g_queue_props);
   }
   {
     c10::DeviceGuard device_guard(c10::Device(c10::DeviceType::XPU, 1));
     stream_1 = new sycl::queue(
-        c10::xpu::get_device_context(),
+        //c10::xpu::get_device_context(),
         c10::xpu::get_raw_device(1),
         c10::xpu::asyncHandler,
-        {sycl::property::queue::in_order(), queue::priority_normal()});
+	g_queue_props);
   }
   at::xpu::XPUStream myStream0 = at::xpu::getStreamFromExternal(stream_0, 0);
   at::xpu::XPUStream myStream1 = at::xpu::getStreamFromExternal(stream_1, 1);
@@ -294,12 +305,11 @@ TEST(XPUStreamTest, ExternalStreamDifferentPointersTest) {
     return;
   }
 
-  using namespace sycl::ext::oneapi::property;
   sycl::queue ext_queue = sycl::queue(
-      c10::xpu::get_device_context(),
+      //c10::xpu::get_device_context(),
       c10::xpu::get_raw_device(0),
       c10::xpu::asyncHandler,
-      {sycl::property::queue::in_order(), queue::priority_normal()});
+      g_queue_props);
 
   // Ponters to queue and its copies will lead to distinct external XPUStreams.
   auto queue_ptr1 = std::make_unique<sycl::queue>(ext_queue);

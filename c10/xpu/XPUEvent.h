@@ -65,8 +65,8 @@ struct XPUEvent {
       return true;
     }
 
-    return event().get_info<event::command_execution_status>() ==
-        event_command_status::complete;
+    return false /*event().get_info<event::command_execution_status>() ==
+        event_command_status::complete*/;
   }
 
   void record() {
@@ -80,7 +80,7 @@ struct XPUEvent {
   }
 
   void record(const XPUStream& stream) {
-    namespace syclex = sycl::ext::oneapi::experimental;
+    //namespace syclex = sycl::ext::oneapi::experimental;
     const c10::impl::PyInterpreter* interp = c10::impl::GPUTrace::get_trace();
     if (!isCreated()) {
       createEvent(stream.device_index());
@@ -124,9 +124,11 @@ struct XPUEvent {
             stream.queue(), *event_);
 #endif
       } else {
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_BARRIER
         std::vector<sycl::event> event_list{event()};
         // Make this stream wait until event_ is completed.
         stream.queue().ext_oneapi_submit_barrier(event_list);
+#endif
       }
 
       const c10::impl::PyInterpreter* interp = c10::impl::GPUTrace::get_trace();
@@ -172,12 +174,14 @@ struct XPUEvent {
 
  private:
   void assignEvent(sycl::queue& queue) {
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_BARRIER
     if (enable_timing_) {
       event_ = std::make_unique<sycl::event>(
           sycl::ext::oneapi::experimental::submit_profiling_tag(queue));
     } else {
       event_ = std::make_unique<sycl::event>(queue.ext_oneapi_submit_barrier());
     }
+#endif
   }
 
   void reassignEvent(sycl::queue& queue) {

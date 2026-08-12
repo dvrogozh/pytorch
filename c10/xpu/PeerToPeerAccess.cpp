@@ -42,11 +42,15 @@ bool get_p2p_access(c10::DeviceIndex dev, c10::DeviceIndex dev_to_access) {
     return static_cast<bool>(cache);
   }
 
+#ifdef SYCL_EXT_ONEAPI_PEER_ACCESS
   // Query the hardware to determine if P2P access is supported
   cache = static_cast<int8_t>(
       c10::xpu::get_raw_device(dev).ext_oneapi_can_access_peer(
           c10::xpu::get_raw_device(dev_to_access),
           sycl::ext::oneapi::peer_access::access_supported));
+#else
+  cache = false;
+#endif
 
   if (cache) {
     XPUCachingAllocator::enablePeerAccess(dev, dev_to_access);

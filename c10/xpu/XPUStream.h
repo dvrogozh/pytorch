@@ -27,7 +27,11 @@ namespace c10::xpu {
  * threads as the SYCL specification described.
  */
 
+#ifdef SYCL_EXT_ONEAPI_QUEUE_PRIORITY
 static constexpr int max_compile_time_stream_priorities = 3;
+#else
+static constexpr int max_compile_time_stream_priorities = 1;
+#endif
 
 /*
  * This serves as a wrapper around c10::Stream and acts as a representation for
@@ -95,7 +99,11 @@ class C10_XPU_API XPUStream {
   /// Return true if all enqueued tasks in this stream have been completed,
   /// otherwise return false.
   bool query() const {
+#ifdef SYCL_EXT_ONEAPI_QUEUE_EMPTY
     return queue().ext_oneapi_empty();
+#else
+    TORCH_CHECK(false, "sycl::queue::ext_oneapi_empty is not supported");
+#endif
   }
 
   /// Performs a blocking wait for the completion of all enqueued tasks in this
@@ -110,8 +118,12 @@ class C10_XPU_API XPUStream {
   }
 
   bool is_capturing() const {
+#ifdef SYCL_EXT_ONEAPI_GRAPH
     return queue().ext_oneapi_get_state() ==
         sycl::ext::oneapi::experimental::queue_state::recording;
+#else
+    TORCH_CHECK(false, "sycl::queue::ext_oneapi_get_state is not supported");
+#endif
   }
 
   /// Return the priority that this stream is associated with. Lower numbers

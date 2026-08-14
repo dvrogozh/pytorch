@@ -2316,6 +2316,7 @@
     CPU: empty_cpu
     CUDA: empty_cuda
     MPS: empty_mps
+    XPU: empty_xpu
     Meta: empty_meta_symint
     MkldnnCPU: empty_mkldnn
     SparseCPU, SparseCUDA, SparseMPS: empty_sparse
@@ -2436,6 +2437,7 @@
     CPU: empty_strided_cpu
     CUDA: empty_strided_cuda
     MPS: empty_strided_mps
+    XPU: empty_strided_xpu
     Meta: empty_strided_meta_symint
     QuantizedCPU, QuantizedCUDA: empty_strided_unknown_quantized
   autogen: empty_strided.out

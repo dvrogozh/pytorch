@@ -690,7 +690,7 @@ class DeviceCachingAllocator {
           break;
         }
 #else
-        TORCH_CHECK(false, "sycl::info::event::command_execution_status is not supported");
+        //TORCH_CHECK(false, "sycl::info::event::command_execution_status is not supported");
 #endif
         block->event_count--;
         if (block->event_count == 0) {

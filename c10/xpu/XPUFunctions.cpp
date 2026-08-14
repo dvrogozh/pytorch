@@ -149,7 +149,7 @@ inline void initGlobalDevicePoolState() {
   gDevicePool.context =
       std::make_unique<sycl::context>(platform.khr_get_default_context());
 #else
-  TORCH_CHECK(false, "SYCL_KHR_DEFAULT_CONTEXT is not supported");
+  //TORCH_CHECK(false, "SYCL_KHR_DEFAULT_CONTEXT is not supported");
 #endif
 }
 

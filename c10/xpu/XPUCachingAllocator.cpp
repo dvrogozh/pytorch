@@ -436,15 +436,11 @@ void allocPrimitive(void** ptr, size_t size, AllocParams& p) {
   if (p.pool->owner_PrivatePool && p.pool->owner_PrivatePool->allocator()) {
     *ptr = p.pool->owner_PrivatePool->allocator()->raw_alloc(size);
   } else {
-#if 0
     *ptr = sycl::aligned_alloc_device(
         kDeviceAlignment,
         size,
         xpu::get_raw_device(p.device()),
         xpu::get_device_context());
-#else
-    TORCH_CHECK(false, "sycl::aligned_alloc_device is not supported");
-#endif
   }
 }
 

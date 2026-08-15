@@ -142,15 +142,11 @@ inline void initGlobalDevicePoolState() {
   }
 #endif
 
-#ifdef SYCL_KHR_DEFAULT_CONTEXT
   // The default context is utilized for each Intel GPU device, allowing the
   // retrieval of the context from any GPU device.
   const auto& platform = gDevicePool.devices[0]->get_platform();
   gDevicePool.context =
       std::make_unique<sycl::context>(platform.khr_get_default_context());
-#else
-  //TORCH_CHECK(false, "SYCL_KHR_DEFAULT_CONTEXT is not supported");
-#endif
 }
 
 inline void initDevicePoolCallOnce() {

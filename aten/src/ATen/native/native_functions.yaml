@@ -8020,7 +8020,7 @@
   device_check: NoCheck
   device_guard: False
   dispatch:
-    CPU, CUDA, QuantizedCPU, QuantizedCUDA, MPS, MTIA: view
+    CPU, CUDA, QuantizedCPU, QuantizedCUDA, MPS, MTIA, XPU: view
     Meta, ZeroTensor: view_symint
     MkldnnCPU: mkldnn_view
     NestedTensorCPU, NestedTensorHPU, NestedTensorCUDA: view_nested

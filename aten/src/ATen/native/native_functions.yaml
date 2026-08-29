@@ -340,7 +340,7 @@
 - func: abs.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
   device_check: NoCheck   # TensorIterator
   dispatch:
-    CPU, CUDA, MPS, MTIA: abs_out
+    CPU, CUDA, MPS, MTIA, XPU: abs_out
     SparseCPU, SparseCUDA, SparseMPS: abs_sparse_out
     SparseCsrCPU, SparseCsrCUDA, SparseCsrMPS, SparseCsrMeta: abs_sparse_csr_out
   tags: pointwise
@@ -2396,6 +2396,7 @@
     CPU: resize_
     CUDA: resize_cuda_
     MPS: resize_mps_
+    XPU: resize_xpu_
     QuantizedCPU: quantized_resize_cpu_
     SparseCsrCPU, SparseCsrCUDA, SparseCsrMeta: resize_sparse_csr_
   autogen: resize, resize.out

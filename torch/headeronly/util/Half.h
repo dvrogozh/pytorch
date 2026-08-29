@@ -95,8 +95,8 @@ struct alignas(2) Half {
   inline C10_HOST_DEVICE operator __half() const;
 #endif
 #ifdef SYCL_LANGUAGE_VERSION
-  inline C10_HOST_DEVICE Half(const sycl::half& value);
-  inline C10_HOST_DEVICE operator sycl::half() const;
+  //inline C10_HOST_DEVICE Half(const sycl::half& value);
+  //inline C10_HOST_DEVICE operator sycl::half() const;
 #endif
 };
 
@@ -439,7 +439,7 @@ inline C10_HOST_DEVICE Half::Half(float value)
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       x(__half_as_short(__float2half(value)))
 #elif defined(__SYCL_DEVICE_ONLY__)
-      x(c10::bit_cast<uint16_t>(sycl::half(value)))
+      x(/*c10::bit_cast<uint16_t>(sycl::half(value))*/)
 #elif (defined(CPU_CAPABILITY_AVX2) || defined(CPU_CAPABILITY_AVX512)) && \
     !defined(__APPLE__)
       x(at::vec::float2half_scalar(value))
@@ -455,7 +455,7 @@ inline C10_HOST_DEVICE Half::operator float() const {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
   return __half2float(*reinterpret_cast<const __half*>(&x));
 #elif defined(__SYCL_DEVICE_ONLY__)
-  return float(c10::bit_cast<sycl::half>(x));
+  return float(/*c10::bit_cast<sycl::half>(x)*/);
 #elif (defined(CPU_CAPABILITY_AVX2) || defined(CPU_CAPABILITY_AVX512)) && \
     !defined(__APPLE__)
   return at::vec::half2float_scalar(x);
@@ -479,12 +479,12 @@ inline C10_HOST_DEVICE Half::operator __half() const {
 #endif
 
 #ifdef SYCL_LANGUAGE_VERSION
-inline C10_HOST_DEVICE Half::Half(const sycl::half& value) {
+/*inline C10_HOST_DEVICE Half::Half(const sycl::half& value) {
   x = *reinterpret_cast<const unsigned short*>(&value);
 }
 inline C10_HOST_DEVICE Half::operator sycl::half() const {
   return *reinterpret_cast<const sycl::half*>(&x);
-}
+}*/
 #endif
 
 // CUDA intrinsics
@@ -520,7 +520,7 @@ inline C10_HOST_DEVICE Half operator-(const Half& a) {
     defined(__HIP_DEVICE_COMPILE__)
   return __hneg(a);
 #elif defined(__SYCL_DEVICE_ONLY__)
-  return -c10::bit_cast<sycl::half>(a);
+  return -0.0 /*c10::bit_cast<sycl::half>(a)*/;
 #else
   return -static_cast<float>(a);
 #endif

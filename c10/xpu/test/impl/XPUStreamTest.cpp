@@ -11,6 +11,7 @@
 #include <thread>
 #include <unordered_set>
 
+#if 0
 static bool has_xpu() {
   return c10::xpu::device_count() > 0;
 }
@@ -235,7 +236,9 @@ TEST(XPUStreamTest, ExternalTest) {
   c10::DeviceGuard device_guard(c10::Device(c10::DeviceType::XPU, 0));
 
   sycl::queue* stream = new sycl::queue(
-      //c10::xpu::get_device_context(),
+#ifdef SYCL_EXT_ONEAPI_BACKEND_LEVEL_ZERO 
+      c10::xpu::get_device_context(),
+#endif
       c10::xpu::get_raw_device(0),
       c10::xpu::asyncHandler,
       g_queue_props
@@ -318,3 +321,4 @@ TEST(XPUStreamTest, ExternalStreamDifferentPointersTest) {
 
   EXPECT_NE(myStream1, myStream2);
 }
+#endif

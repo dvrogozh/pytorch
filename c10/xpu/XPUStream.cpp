@@ -139,7 +139,7 @@ void initDeviceStreamState(DeviceIndex device) {
 #ifdef SYCL_EXT_ONEAPI_QUEUE_PRIORITY
       {sycl::property::queue::in_order(), sycl::ext::oneapi::property::queue::priority_low()},
       {sycl::property::queue::in_order(), sycl::ext::oneapi::property::queue::priority_normal()},
-      {sycl::property::queue::in_order(), sycl::ext::oneapi::propertyqueue::priority_high()}
+      {sycl::property::queue::in_order(), sycl::ext::oneapi::property::queue::priority_high()}
 #else
       {/*sycl::property::queue::in_order()*/},
       {/*sycl::property::queue::in_order()*/},

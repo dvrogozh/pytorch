@@ -54,7 +54,12 @@ void enumDevices(std::vector<std::unique_ptr<sycl::device>>& devices) {
   // Check if a platform contains at least one GPU (either iGPU or dGPU).
   auto has_gpu = [&is_igpu](const sycl::platform& platform, bool check_igpu) {
     // Only consider platforms using the Level Zero backend.
-    if (platform.get_backend() != sycl::backend::level_zero/*sycl::backend::ext_oneapi_level_zero*/) {
+#ifdef SYCL_EXT_ONEAPI_BACKEND_LEVEL_ZERO
+    const sycl::backend backend = sycl::backend::ext_oneapi_level_zero;
+#else
+    const sycl::backend backend = sycl::backend::level_zero;
+#endif
+    if (platform.get_backend() != backend) {
       return false;
     }
     // Check if the platform contains at least one GPU.

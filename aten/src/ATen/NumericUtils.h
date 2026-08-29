@@ -26,7 +26,8 @@ C10_HOST_DEVICE inline T exp(T x) {
   return __expf(x);
 #elif defined(__SYCL_DEVICE_ONLY__)
   // use native::exp fast approximation for peak bandwidth
-  return sycl::native::exp(x);
+  TORCH_CHECK(false, "sycl::native::exp is not supported");
+  //return sycl::native::exp(x);
 #else
   return ::exp(x);
 #endif
@@ -47,7 +48,8 @@ C10_HOST_DEVICE inline T log(T x) {
   return __logf(x);
 #elif defined(__SYCL_DEVICE_ONLY__)
   // use native::log fast approximation for peak bandwidth
-  return sycl::native::log(x);
+  TORCH_CHECK(false, "sycl::native::log is not supported");
+  //return sycl::native::log(x);
 #else
   return ::log(x);
 #endif
@@ -69,7 +71,8 @@ C10_HOST_DEVICE inline T log1p(T x) {
   return __logf(1.0f + x);
 #elif defined(__SYCL_DEVICE_ONLY__)
   // use native::log fast approximation for peak bandwidth
-  return sycl::native::log(1.0f + x);
+  TORCH_CHECK(false, "sycl::native::log is not supported");
+  //return sycl::native::log(1.0f + x);
 #else
   return ::log1p(x);
 #endif
@@ -90,7 +93,8 @@ C10_HOST_DEVICE inline T tan(T x) {
   return __tanf(x);
 #elif defined(__SYCL_DEVICE_ONLY__)
   // use native::tan fast approximation for peak bandwidth
-  return sycl::native::tan(x);
+  TORCH_CHECK(false, "sycl::native::tan is not supported");
+  //return sycl::native::tan(x);
 #else
   return ::tan(x);
 #endif

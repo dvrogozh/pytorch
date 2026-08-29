@@ -39,7 +39,8 @@ inline C10_HOST_DEVICE float fp8_fnuz_to_fp32_value(uint8_t x) {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     uint32_t renorm_shift = __clz(mantissa);
 #elif defined(__SYCL_DEVICE_ONLY__)
-    uint32_t renorm_shift = sycl::clz(mantissa);
+    TORCH_CHECK(false, "sycl::clz is not supported");
+    uint32_t renorm_shift = 0; //sycl::clz(mantissa);
 #elif defined(_MSC_VER)
     unsigned long nonsign_bsr;
     _BitScanReverse(&nonsign_bsr, (unsigned long)mantissa);

@@ -731,40 +731,6 @@ def _append_sycl_std_if_no_std_present(cflags) -> None:
         cflags.append('-sycl-std=2020')
 
 
-def _wrap_sycl_host_flags(cflags):
-    host_cflags = []
-    host_cxx = get_cxx_compiler()
-    if IS_WINDOWS:
-        for flag in cflags:
-            if flag.startswith("-I"):
-                flag = flag.replace("\\", "\\\\").replace("-I", "/I")
-            else:
-                flag = flag.replace("-D", "/D")
-            flag = flag.replace('"', '\\"')
-            host_cflags.append(flag)
-        joined_host_cflags = ' '.join(host_cflags)
-
-        external_include = _join_sycl_home("include").replace("\\", "\\\\")
-
-        # Some versions of DPC++ compiler pass paths to SYCL headers as user include paths (`-I`) rather
-        # than system paths (`-isystem`). This makes host compiler to report warnings encountered in the
-        # SYCL headers, such as deprecated warnings, even if warned API is not actually used in the program.
-        # We expect that this issue will be addressed in the later version of DPC++ compiler. To workaround the
-        # issue now we wrap paths to SYCL headers in `/external:I`. Warning free compilation is especially important
-        # for Windows build as `/sdl` compilation flag assumes that and we will fail compilation otherwise.
-        wrapped_host_cflags = [
-            f"-fsycl-host-compiler={host_cxx}",
-            f'-fsycl-host-compiler-options="\\"/external:I{external_include}\\" /external:W0 {joined_host_cflags}"',
-        ]
-    else:
-        joined_host_cflags = ' '.join(cflags)
-        wrapped_host_cflags = [
-            f"-fsycl-host-compiler={host_cxx}",
-            shlex.quote(f"-fsycl-host-compiler-options={joined_host_cflags}"),
-        ]
-    return wrapped_host_cflags
-
-
 class BuildExtension(_LazyBuildExt):
     """
     A custom :mod:`setuptools` build extension .
@@ -1043,17 +1009,8 @@ class BuildExtension(_LazyBuildExt):
                 _append_sycl_std_if_no_std_present(sycl_cflags)
                 host_cflags = extra_cc_cflags + common_cflags + post_cflags
                 append_std17_if_no_std_present(host_cflags)
-                # escaping quoted arguments to pass them thru SYCL compiler
-                icpx_version = _get_icpx_version()
-                if int(icpx_version) >= 20250200:
-                    host_cflags = [item.replace('"', '\\"') for item in host_cflags]
-                else:
-                    host_cflags = [item.replace('"', '\\\\"') for item in host_cflags]
-                # Note the order: shlex.quote sycl_flags first, _wrap_sycl_host_flags
-                # second. Reason is that sycl host flags are quoted, space containing
-                # strings passed to SYCL compiler.
                 sycl_cflags = [shlex.quote(f) for f in sycl_cflags]
-                sycl_cflags += _wrap_sycl_host_flags(host_cflags)
+                sycl_cflags += host_cflags
                 sycl_dlink_post_cflags = _SYCL_DLINK_FLAGS.copy()
                 sycl_dlink_post_cflags += _get_sycl_device_flags(sycl_post_cflags)
                 sycl_post_cflags = [shlex.quote(f) for f in sycl_post_cflags]
@@ -1283,7 +1240,7 @@ class BuildExtension(_LazyBuildExt):
                 sycl_cflags = _nt_quote_args(sycl_cflags)
                 host_cflags = _nt_quote_args(host_cflags)
 
-                sycl_cflags += _wrap_sycl_host_flags(host_cflags)
+                sycl_cflags += host_cflags
                 sycl_dlink_post_cflags = _SYCL_DLINK_FLAGS.copy()
                 sycl_dlink_post_cflags += _get_sycl_device_flags(sycl_post_cflags)
                 sycl_post_cflags = _nt_quote_args(sycl_post_cflags)
@@ -3073,12 +3030,8 @@ def _write_ninja_file_to_build_library(path,
         _append_sycl_targets_if_missing(sycl_cflags)
         _append_sycl_std_if_no_std_present(sycl_cflags)
         host_cflags = cflags
-        # escaping quoted arguments to pass them thru SYCL compiler
-        icpx_version = _get_icpx_version()
-        if int(icpx_version) < 20250200:
-            host_cflags = [item.replace('\\"', '\\\\"') for item in host_cflags]
 
-        sycl_cflags += _wrap_sycl_host_flags(host_cflags)
+        sycl_cflags += host_cflags
         sycl_dlink_post_cflags = _SYCL_DLINK_FLAGS.copy()
         sycl_dlink_post_cflags += _get_sycl_device_flags(sycl_cflags)
     else:

@@ -1,5 +1,8 @@
+#include <ATen/Config.h>
 #include <ATen/Context.h>
+#if AT_MKLDNN_ENABLED()
 #include <ATen/native/mkldnn/xpu/detail/oneDNN.h>
+#endif
 #include <ATen/native/transformers/attention.h>
 #include <ATen/native/transformers/sdp_utils.h>
 #include <ATen/native/transformers/sdp_utils_cpp.h>
@@ -53,6 +56,12 @@ bool check_no_grad(sdp::sdp_params const& params, bool debug) {
 }
 
 bool can_use_overrideable_attention(sdp::sdp_params const& params, bool debug) {
+#if !AT_MKLDNN_ENABLED()
+  if (debug) {
+    TORCH_WARN("Overrideable attention requires ATen compiled with MKLDNN.");
+  }
+  return false;
+#else
   constexpr auto supported_dtypes = std::to_array<at::ScalarType>(
       {at::kFloat, at::kBFloat16, at::kHalf}); // double is not supported
 
@@ -78,6 +87,7 @@ bool can_use_overrideable_attention(sdp::sdp_params const& params, bool debug) {
     }
   }
   return sdp::check_tensor_dtype(params, supported_dtypes, debug);
+#endif // AT_MKLDNN_ENABLED()
 }
 
 bool can_use_cudnn_attention(sdp::sdp_params const& params, bool debug) {
@@ -314,6 +324,11 @@ _scaled_dot_product_fused_attention_overrideable_xpu(
     bool is_causal,
     bool return_debug_mask,
     std::optional<double> scale) {
+#if !AT_MKLDNN_ENABLED()
+  TORCH_CHECK(
+      false,
+      "_scaled_dot_product_fused_attention_overrideable_xpu: ATen not compiled with MKLDNN support");
+#else
   TORCH_INTERNAL_ASSERT(
       query.dim() == 4 && key.dim() == 4 && value.dim() == 4,
       "scaled_dot_product_fused_attention_overrideable_xpu: Accept only 4 dims inputs shape of {(B), H, T, K}");
@@ -382,6 +397,7 @@ _scaled_dot_product_fused_attention_overrideable_xpu(
       std::move(philox_seed),
       std::move(philox_offset),
       std::move(debug_attn_mask));
+#endif // AT_MKLDNN_ENABLED()
 }
 
 REGISTER_XPU_DISPATCH(_fused_sdp_choice_stub, &_fused_sdp_choice_xpu);

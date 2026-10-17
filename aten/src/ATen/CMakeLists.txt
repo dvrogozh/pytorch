@@ -566,13 +566,21 @@ if(USE_EIGEN_SPARSE)
 endif()
 
 if(USE_XPU)
-  list(APPEND ATen_XPU_SRCS ${mkldnn_xpu_cpp})
+  if(AT_MKLDNN_ENABLED)
+    list(APPEND ATen_XPU_SRCS ${mkldnn_xpu_cpp})
+    list(APPEND ATen_XPU_DEPENDENCY_LIBS xpu_mkldnn)
+    list(APPEND ATen_XPU_INCLUDE ${XPU_MKLDNN_INCLUDE})
+  else()
+    # Kernels referenced by native_functions.yaml, stubbed out without oneDNN
+    list(APPEND ATen_XPU_SRCS
+      ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu/Attention.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu/Blas.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu/ScaledBlas.cpp)
+  endif()
   list(APPEND ATen_XPU_SRCS ${native_transformers_xpu_cpp})
-  list(APPEND ATen_XPU_DEPENDENCY_LIBS xpu_mkldnn)
 
   list(APPEND ATen_XPU_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu)
   list(APPEND ATen_XPU_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/native/mkldnn/xpu/detail)
-  list(APPEND ATen_XPU_INCLUDE ${XPU_MKLDNN_INCLUDE})
 
   list(APPEND ATen_XPU_INCLUDE ${SYCL_INCLUDE_DIR})
   list(APPEND ATen_XPU_DEPENDENCY_LIBS ${SYCL_LIBRARY})

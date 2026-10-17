@@ -1,11 +1,11 @@
 #define TORCH_ASSERT_ONLY_METHOD_OPERATORS
 #include <ATen/BlasBackend.h>
+#include <ATen/Config.h>
 #include <ATen/WrapDimUtilsMulti.h>
 #include <ATen/ceil_div.h>
 #include <ATen/native/LinearAlgebraUtils.h>
 #include <ATen/native/Resize.h>
 #include <ATen/native/ScaledBlasUtils.h>
-#include <ATen/native/mkldnn/xpu/detail/oneDNN.h>
 #include <ATen/native/xpu/Blas.h>
 #include <ATen/xpu/XPUScaledBlas.h>
 #include <torch/library.h>
@@ -38,6 +38,60 @@
 #include <ATen/ops/scalar_tensor_native.h>
 #include <ATen/ops/vdot_native.h>
 #endif
+
+#if !AT_MKLDNN_ENABLED()
+
+namespace at::native {
+
+Tensor& _scaled_mm_out_xpu(
+    const Tensor& mat1,
+    const Tensor& mat2,
+    const Tensor& scale_a,
+    const Tensor& scale_b,
+    const std::optional<at::Tensor>& bias,
+    const std::optional<at::Tensor>& scale_result,
+    std::optional<c10::ScalarType> out_dtype,
+    bool use_fast_accum,
+    Tensor& out) {
+  TORCH_CHECK(
+      false, "_scaled_mm_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _scaled_mm_xpu(
+    const Tensor& mat_a,
+    const Tensor& mat_b,
+    const Tensor& scale_a,
+    const Tensor& scale_b,
+    const std::optional<at::Tensor>& bias,
+    const std::optional<at::Tensor>& scale_result,
+    std::optional<c10::ScalarType> out_dtype,
+    bool use_fast_accum) {
+  TORCH_CHECK(false, "_scaled_mm_xpu: ATen not compiled with MKLDNN support");
+}
+
+TORCH_IMPL_FUNC(_scaled_mm_xpu_v2_out)
+(const Tensor& mat_a,
+ const Tensor& mat_b,
+ const at::ITensorListRef& scale_a_list,
+ IntArrayRef scale_recipe_a,
+ IntArrayRef swizzle_a,
+ const at::ITensorListRef& scale_b_list,
+ IntArrayRef scale_recipe_b,
+ IntArrayRef swizzle_b,
+ at::OptionalTensorRef bias,
+ std::optional<c10::ScalarType> out_dtype,
+ IntArrayRef contraction_dim,
+ bool use_fast_accum,
+ const Tensor& out) {
+  TORCH_CHECK(
+      false, "_scaled_mm_xpu_v2_out: ATen not compiled with MKLDNN support");
+}
+
+} // namespace at::native
+
+#else // AT_MKLDNN_ENABLED()
+
+#include <ATen/native/mkldnn/xpu/detail/oneDNN.h>
 
 namespace at::native {
 
@@ -1422,3 +1476,5 @@ TORCH_IMPL_FUNC(_scaled_mm_xpu_v2_out)
 }
 
 } // namespace at::native
+
+#endif // AT_MKLDNN_ENABLED()

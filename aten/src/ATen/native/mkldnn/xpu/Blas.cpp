@@ -1,7 +1,7 @@
 #define TORCH_ASSERT_ONLY_METHOD_OPERATORS
+#include <ATen/Config.h>
 #include <ATen/native/LinearAlgebraUtils.h>
 #include <ATen/native/Resize.h>
-#include <ATen/native/mkldnn/xpu/detail/oneDNN.h>
 #include <ATen/native/xpu/Blas.h>
 #include <torch/library.h>
 #ifndef AT_PER_OPERATOR_HEADERS
@@ -10,6 +10,9 @@
 #include <ATen/NativeFunctions.h>
 #else
 #include <ATen/ops/_addmm_activation_native.h>
+#include <ATen/ops/_int_mm_native.h>
+#include <ATen/ops/_weight_int4pack_mm_native.h>
+#include <ATen/ops/_weight_int8pack_mm_native.h>
 #include <ATen/ops/addmm_native.h>
 #include <ATen/ops/addmv_native.h>
 #include <ATen/ops/baddbmm_native.h>
@@ -23,6 +26,174 @@
 #include <ATen/ops/scalar_tensor_native.h>
 #include <ATen/ops/tensordot.h>
 #endif
+
+#if !AT_MKLDNN_ENABLED()
+
+namespace at::native {
+
+TORCH_IMPL_FUNC(addmm_out_xpu)
+(const Tensor& self,
+ const Tensor& mat1,
+ const Tensor& mat2,
+ const Scalar& beta,
+ const Scalar& alpha,
+ const Tensor& result) {
+  TORCH_CHECK(false, "addmm_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+TORCH_IMPL_FUNC(mm_out_xpu)
+(const Tensor& self, const Tensor& mat2, const Tensor& result) {
+  TORCH_CHECK(false, "mm_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+TORCH_IMPL_FUNC(bmm_out_xpu)
+(const Tensor& self, const Tensor& batch2, const Tensor& result) {
+  TORCH_CHECK(false, "bmm_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+TORCH_IMPL_FUNC(addmm_activation_out_xpu)
+(const Tensor& self,
+ const Tensor& mat1,
+ const Tensor& mat2,
+ const Scalar& beta,
+ const Scalar& alpha,
+ bool use_gelu,
+ const Tensor& result) {
+  TORCH_CHECK(
+      false, "addmm_activation_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+TORCH_IMPL_FUNC(baddbmm_out_xpu)
+(const Tensor& self,
+ const Tensor& batch1,
+ const Tensor& batch2,
+ const Scalar& beta,
+ const Scalar& alpha,
+ const Tensor& result) {
+  TORCH_CHECK(false, "baddbmm_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+TORCH_IMPL_FUNC(addmv_out_xpu)
+(const Tensor& self,
+ const Tensor& mat,
+ const Tensor& vec,
+ const Scalar& beta,
+ const Scalar& alpha,
+ const Tensor& result) {
+  TORCH_CHECK(false, "addmv_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _weight_int4pack_mm_xpu(
+    const Tensor& A,
+    const Tensor& B,
+    int64_t qGroupSize,
+    const Tensor& qScale,
+    const Tensor& qZeros) {
+  TORCH_CHECK(
+      false, "_weight_int4pack_mm_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor& _int_mm_out_xpu(
+    const Tensor& self,
+    const Tensor& mat2,
+    Tensor& result) {
+  TORCH_CHECK(false, "_int_mm_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _int_mm_xpu(const Tensor& self, const Tensor& mat2) {
+  TORCH_CHECK(false, "_int_mm_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _weight_int8pack_mm_xpu(
+    const Tensor& A,
+    const Tensor& B,
+    const Tensor& scales) {
+  TORCH_CHECK(
+      false, "_weight_int8pack_mm_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _bmm_dtype_xpu(
+    const Tensor& batch1,
+    const Tensor& batch2,
+    const at::ScalarType out_dtype) {
+  TORCH_CHECK(false, "_bmm_dtype_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor& _bmm_out_dtype_xpu(
+    const Tensor& batch1,
+    const Tensor& batch2,
+    const at::ScalarType out_dtype,
+    Tensor& out) {
+  TORCH_CHECK(
+      false, "_bmm_out_dtype_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _baddbmm_dtype_xpu(
+    const Tensor& self,
+    const Tensor& batch1,
+    const Tensor& batch2,
+    const at::ScalarType out_dtype,
+    const Scalar& beta,
+    const Scalar& alpha) {
+  TORCH_CHECK(
+      false, "_baddbmm_dtype_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor& _baddbmm_out_dtype_xpu(
+    const Tensor& self,
+    const Tensor& batch1,
+    const Tensor& batch2,
+    const at::ScalarType out_dtype,
+    const Scalar& beta,
+    const Scalar& alpha,
+    Tensor& out) {
+  TORCH_CHECK(
+      false, "_baddbmm_out_dtype_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _mm_dtype_xpu(
+    const Tensor& self,
+    const Tensor& mat2,
+    const at::ScalarType out_dtype) {
+  TORCH_CHECK(false, "_mm_dtype_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor& _mm_dtype_out_xpu(
+    const Tensor& self,
+    const Tensor& mat2,
+    const at::ScalarType out_dtype,
+    Tensor& out) {
+  TORCH_CHECK(
+      false, "_mm_dtype_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor _addmm_dtype_xpu(
+    const Tensor& self,
+    const Tensor& mat1,
+    const Tensor& mat2,
+    const at::ScalarType out_dtype,
+    const Scalar& beta,
+    const Scalar& alpha) {
+  TORCH_CHECK(false, "_addmm_dtype_xpu: ATen not compiled with MKLDNN support");
+}
+
+Tensor& _addmm_dtype_out_xpu(
+    const Tensor& self,
+    const Tensor& mat1,
+    const Tensor& mat2,
+    const at::ScalarType out_dtype,
+    const Scalar& beta,
+    const Scalar& alpha,
+    Tensor& out) {
+  TORCH_CHECK(
+      false, "_addmm_dtype_out_xpu: ATen not compiled with MKLDNN support");
+}
+
+} // namespace at::native
+
+#else // AT_MKLDNN_ENABLED()
+
+#include <ATen/native/mkldnn/xpu/detail/oneDNN.h>
 
 namespace at::native {
 namespace xpu {
@@ -845,3 +1016,5 @@ Tensor& _addmm_dtype_out_xpu(
 }
 
 } // namespace at::native
+
+#endif // AT_MKLDNN_ENABLED()

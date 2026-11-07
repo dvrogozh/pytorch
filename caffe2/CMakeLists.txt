@@ -1314,14 +1314,12 @@ if(USE_XPU)
   endif()
   # Some Python-derived include paths (for example NumPy/site-packages entries)
   # can still arrive through transitive include sets and vary per CPython ABI.
-  # Strip them so FindSYCL custom-command scripts stay stable across iterations.
+  # Strip them so SYCL compile commands stay stable across iterations.
   list(FILTER TORCH_XPU_OPS_INCLUDE_DIRS EXCLUDE REGEX "(^|/)site-packages(/|$)")
   list(FILTER TORCH_XPU_OPS_INCLUDE_DIRS EXCLUDE REGEX "(^|/)python[0-9.]+(/|$)")
   # Pass the target as a dependency so that ATen headers generation
-  # could be followed by torch-xpu-ops build.
-  # 1. Sources in torch-xpu-ops depend on generated ATen headers.
-  # 2. Using add_custom_command in torch-xpu-ops to define sycl device sources
-  #    compilation. add_custom_command requires an explicit dependency.
+  # could be followed by torch-xpu-ops build: sources in torch-xpu-ops depend
+  # on generated ATen headers.
   list(APPEND ${Caffe2_XPU_INCLUDE} ${TORCH_XPU_OPS_DIR}/src/ATen/)
   set(TORCH_XPU_OPS_PYTORCH_DEPS ATEN_CPU_FILES_GEN_TARGET)
 
@@ -1335,6 +1333,16 @@ if(USE_XPU)
       target_compile_definitions(torch_xpu PUBLIC USE_C10D_XCCL)
     endif()
     target_link_libraries(torch_xpu PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,torch_xpu_ops>)
+    # torch_xpu_ops carries its linked SYCL device code, so link torch_xpu with
+    # the host C++ linker. Otherwise CMake selects the SYCL linker because
+    # torch_xpu_ops compiles SYCL sources, and the SYCL driver would link the
+    # device code once more.
+    set_target_properties(torch_xpu PROPERTIES LINKER_LANGUAGE CXX)
+    # Linking SYCL code with the C++ linker makes CMake add the SYCL compiler
+    # implicit libraries (libsvml, libimf, libirc, ...), which torch_xpu does
+    # not need; they would become new runtime dependencies. The SYCL runtime
+    # library is linked explicitly through torch_xpu_ops.
+    set(CMAKE_SYCL_IMPLICIT_LINK_LIBRARIES "")
 
     # Set cached ${ATen_XPU_INCLUDE_DIRS} to torch
     include_directories(SYSTEM ${ATen_XPU_INCLUDE_DIRS})

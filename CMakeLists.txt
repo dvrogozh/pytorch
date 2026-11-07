@@ -608,8 +608,8 @@ endif()
 if(USE_CCACHE)
   find_program(CCACHE_PROGRAM ccache)
   find_program(SCCACHE_EXECUTABLE sccache)
-  # torch-xpu-ops consumes CMAKE_SYCL_COMPILER_LAUNCHER directly; this does not
-  # require CMake to provide native SYCL language support.
+  # CMAKE_SYCL_COMPILER_LAUNCHER applies to the native SYCL language used by
+  # torch-xpu-ops (which disables ccache older than 4.12.1 for SYCL).
   if(CCACHE_PROGRAM)
     foreach(LANG CXX C CUDA SYCL)
       set(CMAKE_${LANG}_COMPILER_LAUNCHER

@@ -86,8 +86,47 @@ if(USE_XPU)
     message(WARNING "Not compiling with XPU. Could NOT find SYCL. "
     "Suppress this warning with -DUSE_XPU=OFF.")
     caffe2_update_option(USE_XPU OFF)
+  elseif(CMAKE_VERSION VERSION_LESS 4.5)
+    # torch-xpu-ops compiles SYCL kernels with the native CMake SYCL language.
+    if(_USE_XPU_EXPLICITLY_SET)
+      message(FATAL_ERROR
+        "PyTorch: XPU was explicitly requested (USE_XPU=1) but requires "
+        "CMake >= 4.5 for SYCL language support, found ${CMAKE_VERSION}.")
+    endif()
+    message(WARNING "Not compiling with XPU. XPU requires CMake >= 4.5 for "
+      "SYCL language support, found ${CMAKE_VERSION}. "
+      "Suppress this warning with -DUSE_XPU=OFF.")
+    caffe2_update_option(USE_XPU OFF)
+  else()
+    # Enable the SYCL language from the top-level directory, so that targets
+    # linking SYCL code from torch-xpu-ops (e.g. torch_xpu) see the SYCL
+    # toolchain. SYCL support is experimental in CMake 4.5 and gated by
+    # CMAKE_EXPERIMENTAL_SYCL, the UUID is specific to the CMake version.
+    set(CMAKE_EXPERIMENTAL_SYCL "c0d1fb10-2ece-420e-9d29-7d7f2b300f25")
+    if(NOT CMAKE_SYCL_COMPILER AND NOT DEFINED ENV{SYCLCXX})
+      # SYCL_COMPILER is the C driver (icx) for oneAPI; use the C++ driver from
+      # the same installation on Linux. On Windows icx handles C++ as well.
+      get_filename_component(_sycl_compiler_name "${SYCL_COMPILER}" NAME_WE)
+      if(NOT WIN32 AND _sycl_compiler_name STREQUAL "icx")
+        get_filename_component(_sycl_compiler_dir "${SYCL_COMPILER}" DIRECTORY)
+        set(CMAKE_SYCL_COMPILER "${_sycl_compiler_dir}/icpx")
+      else()
+        set(CMAKE_SYCL_COMPILER "${SYCL_COMPILER}")
+      endif()
+      unset(_sycl_compiler_name)
+      unset(_sycl_compiler_dir)
+    endif()
+    # enable_language() leaves CMAKE_BASE_NAME set to the name of the SYCL
+    # compiler (icpx). Restore it: dependencies (e.g. oneDNN) use it to
+    # identify the C++ compiler.
+    set(_cmake_base_name "${CMAKE_BASE_NAME}")
+    enable_language(SYCL)
+    set(CMAKE_BASE_NAME "${_cmake_base_name}")
+    unset(_cmake_base_name)
   endif()
-  add_compile_definitions(${XPU_HOST_CXX_DEFINITIONS})
+  if(USE_XPU)
+    add_compile_definitions(${XPU_HOST_CXX_DEFINITIONS})
+  endif()
 endif()
 
 # ---[ Custom Protobuf
